@@ -1,18 +1,446 @@
 <!DOCTYPE html>
 <html>
 <head>
-    <script src="https://aframe.io/releases/1.5.0/aframe.min.js"></script>
+    <meta charset="utf-8">
+    <title>Hand Tracking Reaching Experiment</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <style>
+        body {
+            margin: 0;
+            background-color: #000;
+            color: white;
+            font-family: Arial, sans-serif;
+            overflow: hidden;
+        }
+        #container {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+        }
+        #info {
+            position: absolute;
+            top: 10px;
+            left: 10px;
+            background: rgba(0,0,0,0.7);
+            padding: 10px;
+            border-radius: 5px;
+            z-index: 100;
+        }
+        #score {
+            position: absolute;
+            top: 10px;
+            left: 50%;
+            transform: translateX(-50%);
+            background: rgba(0,0,0,0.7);
+            padding: 10px 20px;
+            border-radius: 5px;
+            font-size: 24px;
+            z-index: 100;
+        }
+        #enterVR {
+            position: absolute;
+            bottom: 20px;
+            left: 50%;
+            transform: translateX(-50%);
+            padding: 12px 24px;
+            background: #4CAF50;
+            color: white;
+            border: none;
+            border-radius: 4px;
+            font-size: 16px;
+            cursor: pointer;
+        }
+        #enterVR:hover {
+            background: #45a049;
+        }
+    </style>
 </head>
 <body>
-    <a-scene webxr="requiredFeatures: hand-tracking">
-        <a-box position="0 1.5 -3" color="red"></a-box>
-        <a-camera position="0 1.6 0"></a-camera>
-        <a-entity laser-controls="hand: left" raycaster="showLine: true">
-            <a-sphere radius="0.05" color="blue"></a-sphere>
-        </a-entity>
-        <a-entity laser-controls="hand: right" raycaster="showLine: true">
-            <a-sphere radius="0.05" color="green"></a-sphere>
-        </a-entity>
-    </a-scene>
+    <div id="container">
+        <div id="info">Status: <span id="status">Ready</span></div>
+        <div id="score">Score: <span id="scoreValue">0</span></div>
+        <button id="enterVR">Enter VR</button>
+    </div>
+
+    <script type="module">
+        import * as THREE from 'https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.module.js';
+
+        // Configuration
+        const CONFIG = {
+            targetDistance: 1.0,
+            targetHeight: 1.6,
+            sphereRadius: 0.08,
+            homeBoxWidth: 1.0,
+            homeBoxPosition: { x: 0, y: 1.1, z: -0.1 },
+            trialTimeout: 300000,
+            trialsPerTarget: 10,
+            totalTargets: 11,
+            delayBeforeTarget: 500,
+            lowScoreRange: [1, 5],
+            highScoreRange: [5, 10],
+            lowScoreProbability: 0.8
+        };
+
+        // State
+        let state = {
+            score: 0,
+            currentTrial: 0,
+            trialsData: [],
+            trialSequence: [],
+            bothHandsInHome: false,
+            targetActive: false,
+            waitingForReturn: false,
+            experimentComplete: false,
+            trialStartTime: null,
+            handLeftHome: null
+        };
+
+        // Three.js setup
+        const scene = new THREE.Scene();
+        scene.background = new THREE.Color(0x212121);
+
+        const camera = new THREE.PerspectiveCamera(75, window.innerWidth / window.innerHeight, 0.1, 1000);
+        camera.position.set(0, 1.6, 0);
+
+        const renderer = new THREE.WebGLRenderer({ antialias: true });
+        renderer.setSize(window.innerWidth, window.innerHeight);
+        renderer.xr.enabled = true;
+        document.body.appendChild(renderer.domElement);
+
+        // Lighting
+        const light = new THREE.DirectionalLight(0xffffff, 1);
+        light.position.set(0, 2, 1);
+        scene.add(light);
+        scene.add(new THREE.AmbientLight(0x404040));
+
+        // Home box
+        const homeBoxGeometry = new THREE.BoxGeometry(CONFIG.homeBoxWidth, 0.2, 0.3);
+        const homeBoxMaterial = new THREE.MeshBasicMaterial({ 
+            color: 0x808080, 
+            transparent: true, 
+            opacity: 0.7 
+        });
+        const homeBox = new THREE.Mesh(homeBoxGeometry, homeBoxMaterial);
+        homeBox.position.set(CONFIG.homeBoxPosition.x, CONFIG.homeBoxPosition.y, CONFIG.homeBoxPosition.z);
+        scene.add(homeBox);
+
+        // Target sphere
+        const targetGeometry = new THREE.SphereGeometry(CONFIG.sphereRadius, 32, 16);
+        const targetMaterial = new THREE.MeshBasicMaterial({ color: 0xff0000 });
+        const targetSphere = new THREE.Mesh(targetGeometry, targetMaterial);
+        targetSphere.visible = false;
+        scene.add(targetSphere);
+
+        // Hand meshes
+        const handGeometry = new THREE.BoxGeometry(0.08, 0.02, 0.12);
+        const leftHandMaterial = new THREE.MeshBasicMaterial({ color: 0x00ffff });
+        const rightHandMaterial = new THREE.MeshBasicMaterial({ color: 0xff00ff });
+        
+        const leftHandMesh = new THREE.Mesh(handGeometry, leftHandMaterial);
+        const rightHandMesh = new THREE.Mesh(handGeometry, rightHandMaterial);
+        leftHandMesh.visible = false;
+        rightHandMesh.visible = false;
+        scene.add(leftHandMesh);
+        scene.add(rightHandMesh);
+
+        // Generate trial sequence
+        function generateTrialSequence() {
+            const sequence = [];
+            const targetsNeeded = new Array(11).fill(CONFIG.trialsPerTarget);
+            let lastTarget = -1;
+            
+            while (sequence.length < CONFIG.totalTargets * CONFIG.trialsPerTarget) {
+                const availableTargets = [];
+                for (let i = 0; i < 11; i++) {
+                    if (targetsNeeded[i] > 0 && i !== lastTarget) {
+                        availableTargets.push(i);
+                    }
+                }
+                
+                if (availableTargets.length === 0) {
+                    for (let i = 0; i < 11; i++) {
+                        if (targetsNeeded[i] > 0) availableTargets.push(i);
+                    }
+                }
+                
+                const targetIndex = availableTargets[Math.floor(Math.random() * availableTargets.length)];
+                sequence.push(targetIndex);
+                targetsNeeded[targetIndex]--;
+                lastTarget = targetIndex;
+            }
+            
+            return sequence;
+        }
+
+        // Calculate target position
+        function getTargetPosition(targetId) {
+            const angleStep = Math.PI / (CONFIG.totalTargets - 1);
+            const angle = -Math.PI/2 + (targetId * angleStep);
+            
+            return new THREE.Vector3(
+                Math.cos(angle) * CONFIG.targetDistance,
+                CONFIG.targetHeight,
+                -Math.sin(angle) * CONFIG.targetDistance
+            );
+        }
+
+        // Update status
+        function updateStatus(message) {
+            document.getElementById('status').textContent = message;
+            console.log('Status:', message);
+        }
+
+        // VR Button
+        document.getElementById('enterVR').addEventListener('click', async () => {
+            if (navigator.xr) {
+                try {
+                    const session = await navigator.xr.requestSession('immersive-vr', {
+                        requiredFeatures: ['hand-tracking'],
+                        optionalFeatures: ['local-floor', 'bounded-floor']
+                    });
+                    renderer.xr.setSession(session);
+                    updateStatus('VR Active - Hand Tracking Enabled');
+                } catch (e) {
+                    updateStatus('VR Error: ' + e.message);
+                    console.error('VR Error:', e);
+                }
+            } else {
+                updateStatus('WebXR not supported');
+            }
+        });
+
+        // Hand tracking
+        let leftHand = null;
+        let rightHand = null;
+
+        renderer.xr.addEventListener('sessionstart', () => {
+            updateStatus('Session started - Show your hands');
+        });
+
+        // Check if hand is in home position
+        function isHandInHome(handPosition) {
+            if (!handPosition) return false;
+            
+            const homePos = homeBox.position;
+            const margin = 0.05;
+            
+            return Math.abs(handPosition.x - homePos.x) < (CONFIG.homeBoxWidth / 2 - margin) &&
+                   Math.abs(handPosition.y - homePos.y) < (0.2 / 2 + margin) &&
+                   Math.abs(handPosition.z - homePos.z) < (0.3 / 2 + margin);
+        }
+
+        // Start trial
+        function startTrial() {
+            if (state.currentTrial >= state.trialSequence.length || state.experimentComplete) return;
+            
+            const targetId = state.trialSequence[state.currentTrial];
+            const position = getTargetPosition(targetId);
+            
+            targetSphere.position.copy(position);
+            targetSphere.material.color.setHex(0xff0000);
+            targetSphere.visible = true;
+            
+            state.targetActive = true;
+            state.trialStartTime = Date.now();
+            state.handLeftHome = null;
+            
+            updateStatus(`Trial ${state.currentTrial + 1}/${state.trialSequence.length}`);
+        }
+
+        // Handle target hit
+        function handleTargetHit(hand) {
+            if (!state.targetActive) return;
+            
+            state.targetActive = false;
+            const reactionTime = state.handLeftHome ? 
+                state.handLeftHome - state.trialStartTime : 
+                Date.now() - state.trialStartTime;
+            
+            // Calculate score
+            const isHighScore = Math.random() > CONFIG.lowScoreProbability;
+            const scoreRange = isHighScore ? CONFIG.highScoreRange : CONFIG.lowScoreRange;
+            const points = Math.floor(Math.random() * (scoreRange[1] - scoreRange[0] + 1)) + scoreRange[0];
+            
+            state.score += points;
+            document.getElementById('scoreValue').textContent = state.score;
+            
+            // Visual feedback
+            targetSphere.material.color.setHex(0x0000ff);
+            
+            setTimeout(() => {
+                targetSphere.visible = false;
+                state.waitingForReturn = true;
+            }, 100);
+            
+            // Record data
+            state.trialsData.push({
+                trialNumber: state.currentTrial + 1,
+                targetID: state.trialSequence[state.currentTrial] + 1,
+                handUsed: hand,
+                timeToOnset: reactionTime
+            });
+            
+            state.currentTrial++;
+            
+            if (state.currentTrial >= state.trialSequence.length) {
+                updateStatus('Experiment Complete! Press X to export');
+                state.experimentComplete = true;
+            }
+        }
+
+        // Animation loop
+        let trialTimer = null;
+        
+        function animate() {
+            renderer.setAnimationLoop(() => {
+                const session = renderer.xr.getSession();
+                if (!session) return;
+
+                const frame = renderer.xr.getFrame();
+                if (!frame) return;
+
+                // Get hand tracking data
+                let leftHandTracked = false;
+                let rightHandTracked = false;
+                
+                for (const inputSource of session.inputSources) {
+                    if (inputSource.hand) {
+                        const handedness = inputSource.handedness;
+                        const wrist = inputSource.hand.get('wrist');
+                        
+                        if (wrist) {
+                            const pose = frame.getJointPose(wrist, renderer.xr.getReferenceSpace());
+                            
+                            if (pose) {
+                                if (handedness === 'left') {
+                                    leftHandMesh.position.copy(pose.transform.position);
+                                    leftHandMesh.visible = true;
+                                    leftHandTracked = true;
+                                    leftHand = leftHandMesh.position;
+                                } else if (handedness === 'right') {
+                                    rightHandMesh.position.copy(pose.transform.position);
+                                    rightHandMesh.visible = true;
+                                    rightHandTracked = true;
+                                    rightHand = rightHandMesh.position;
+                                }
+                            }
+                        }
+                    }
+                }
+
+                // Update hand visibility
+                if (!leftHandTracked) leftHandMesh.visible = false;
+                if (!rightHandTracked) rightHandMesh.visible = false;
+
+                // Check home position
+                const leftInHome = isHandInHome(leftHand);
+                const rightInHome = isHandInHome(rightHand);
+                const bothInHome = leftInHome && rightInHome;
+
+                // Update home box color
+                homeBox.material.color.setHex(bothInHome ? 0x00ff00 : 0x808080);
+
+                // Track when hands leave home
+                if (state.targetActive && !state.handLeftHome && state.bothHandsInHome && !bothInHome) {
+                    state.handLeftHome = Date.now();
+                }
+
+                // Check collisions
+                if (state.targetActive && targetSphere.visible) {
+                    if (leftHand && leftHand.distanceTo(targetSphere.position) < CONFIG.sphereRadius + 0.05) {
+                        handleTargetHit('left');
+                    } else if (rightHand && rightHand.distanceTo(targetSphere.position) < CONFIG.sphereRadius + 0.05) {
+                        handleTargetHit('right');
+                    }
+                }
+
+                // Handle state transitions
+                if (bothInHome && !state.bothHandsInHome) {
+                    state.bothHandsInHome = true;
+                    
+                    if (trialTimer) {
+                        clearTimeout(trialTimer);
+                        trialTimer = null;
+                    }
+                    
+                    if (state.waitingForReturn) {
+                        state.waitingForReturn = false;
+                        state.handLeftHome = null;
+                        
+                        trialTimer = setTimeout(() => {
+                            if (state.bothHandsInHome && !state.experimentComplete) {
+                                startTrial();
+                            }
+                        }, CONFIG.delayBeforeTarget);
+                    } else if (!state.targetActive && state.currentTrial === 0) {
+                        trialTimer = setTimeout(() => {
+                            if (state.bothHandsInHome && !state.experimentComplete) {
+                                startTrial();
+                            }
+                        }, CONFIG.delayBeforeTarget);
+                    }
+                } else if (!bothInHome && state.bothHandsInHome) {
+                    state.bothHandsInHome = false;
+                    
+                    if (trialTimer && !state.targetActive) {
+                        clearTimeout(trialTimer);
+                        trialTimer = null;
+                    }
+                }
+
+                renderer.render(scene, camera);
+            });
+        }
+
+        // CSV export
+        function exportToCSV() {
+            let csv = 'trialNumber,targetID,handUsed,timeToOnset\n';
+            state.trialsData.forEach(trial => {
+                csv += `${trial.trialNumber},${trial.targetID},${trial.handUsed},${trial.timeToOnset}\n`;
+            });
+            
+            const blob = new Blob([csv], { type: 'text/csv' });
+            const url = URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = `hand_tracking_experiment_${Date.now()}.csv`;
+            a.click();
+            URL.revokeObjectURL(url);
+        }
+
+        // Keyboard listener
+        document.addEventListener('keydown', (e) => {
+            if (e.key === 'x' || e.key === 'X') {
+                exportToCSV();
+            }
+        });
+
+        // Window resize
+        window.addEventListener('resize', () => {
+            camera.aspect = window.innerWidth / window.innerHeight;
+            camera.updateProjectionMatrix();
+            renderer.setSize(window.innerWidth, window.innerHeight);
+        });
+
+        // Initialize
+        state.trialSequence = generateTrialSequence();
+        console.log('Experiment ready with', state.trialSequence.length, 'trials');
+        animate();
+
+        // Check WebXR support
+        if (navigator.xr) {
+            navigator.xr.isSessionSupported('immersive-vr').then((supported) => {
+                if (supported) {
+                    updateStatus('WebXR supported - Click Enter VR');
+                } else {
+                    updateStatus('VR not supported on this device');
+                }
+            });
+        } else {
+            updateStatus('WebXR not available');
+        }
+    </script>
 </body>
 </html>
