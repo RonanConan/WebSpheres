@@ -4,10 +4,13 @@
     <meta charset="utf-8">
     <title>Hand Tracking Reaching Experiment</title>
     <meta name="description" content="VR Hand Tracking Experiment for Quest 3">
-    <script src="https://aframe.io/releases/1.4.0/aframe.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/gh/aframevr/aframe@1.4.0/dist/aframe-master.js"></script>
+    <script src="https://cdn.jsdelivr.net/gh/aframevr/aframe@1.4.0/examples/showcase/hand-tracking/components/hand-tracking-controls.js"></script>
     <style>
         body {
             font-family: Arial, sans-serif;
+            margin: 0;
+            padding: 0;
         }
         #info {
             position: fixed;
@@ -34,26 +37,21 @@
     </style>
 </head>
 <body>
-    <div id="info">Press X to export CSV | Status: <span id="status">Loading...</span></div>
+    <div id="info">Press X to export CSV</div>
     <div id="score-display">Score: 0</div>
     
-    <a-scene 
-        vr-mode-ui="enabled: true"
-        background="color: #212121"
-        webxr="optionalFeatures: hand-tracking"
-        stats>
-        
-        <!-- Camera rig -->
-        <a-entity id="cameraRig">
-            <a-camera 
-                id="camera"
-                position="0 1.6 0" 
-                look-controls="enabled: false"
-                wasd-controls="enabled: false">
-            </a-camera>
+    <a-scene background="color: #212121">
+        <!-- Camera with hands -->
+        <a-entity camera position="0 1.6 0" look-controls="enabled: false">
+            <a-entity id="leftHand" 
+                      hand-tracking-controls="hand: left; modelStyle: mesh; modelColor: white"
+                      hand-tracker>
+            </a-entity>
+            <a-entity id="rightHand" 
+                      hand-tracking-controls="hand: right; modelStyle: mesh; modelColor: white"
+                      hand-tracker>
+            </a-entity>
         </a-entity>
-        
-        <!-- Hands will be created dynamically -->
         
         <!-- Home position box -->
         <a-box id="home-box" 
@@ -92,15 +90,17 @@
                 color="white"
                 visible="false">
         </a-text>
+        
+        <!-- Debug panel -->
+        <a-text id="debug" 
+                value="Debug: Waiting for hands..." 
+                position="-1 2 -2" 
+                width="4"
+                color="white">
+        </a-text>
     </a-scene>
 
     <script>
-        // Status updates
-        function updateStatus(message) {
-            document.getElementById('status').textContent = message;
-            console.log('Status:', message);
-        }
-
         // Experiment configuration
         const CONFIG = {
             targetDistance: 1.0,
@@ -123,7 +123,6 @@
             score: 0,
             currentTrial: 0,
             trialsData: [],
-            targetCounts: new Array(11).fill(0),
             lastTarget: -1,
             trialStartTime: null,
             handLeftHome: null,
@@ -132,70 +131,8 @@
             waitingForReturn: false,
             experimentComplete: false,
             trialSequence: [],
-            leftHandTracked: false,
-            rightHandTracked: false,
-            vrActive: false
+            hitThisTrial: false
         };
-
-        // Hand tracking using WebXR directly
-        let xrSession = null;
-        let leftHandMesh = null;
-        let rightHandMesh = null;
-        let referenceSpace = null;
-
-        // Create hand meshes
-        function createHandMesh() {
-            const geometry = new THREE.BoxGeometry(0.08, 0.02, 0.12);
-            const material = new THREE.MeshBasicMaterial({ 
-                color: 0xffffff, 
-                transparent: true, 
-                opacity: 0.8 
-            });
-            return new THREE.Mesh(geometry, material);
-        }
-
-        // Initialize WebXR
-        async function initXR() {
-            updateStatus('Initializing XR...');
-            
-            const scene = document.querySelector('a-scene');
-            
-            scene.addEventListener('enter-vr', async () => {
-                updateStatus('Entering VR...');
-                experimentState.vrActive = true;
-                
-                // Get the XR session
-                if (scene.xrSession) {
-                    xrSession = scene.xrSession;
-                    
-                    try {
-                        // Request hand tracking
-                        referenceSpace = await xrSession.requestReferenceSpace('local');
-                        
-                        updateStatus('VR Active - Place hands in home box');
-                        
-                        // Create hand meshes
-                        leftHandMesh = createHandMesh();
-                        rightHandMesh = createHandMesh();
-                        
-                        scene.object3D.add(leftHandMesh);
-                        scene.object3D.add(rightHandMesh);
-                        
-                        // Start the experiment loop
-                        startExperimentLoop();
-                    } catch (e) {
-                        updateStatus('Hand tracking error: ' + e.message);
-                        console.error('Hand tracking initialization error:', e);
-                    }
-                }
-            });
-            
-            scene.addEventListener('exit-vr', () => {
-                updateStatus('Exited VR');
-                experimentState.vrActive = false;
-                xrSession = null;
-            });
-        }
 
         // Generate trial sequence
         function generateTrialSequence() {
@@ -240,275 +177,209 @@
             };
         }
 
-        // Check if hand is in home position
-        function isHandInHome(handPosition) {
-            if (!handPosition) return false;
+        // Hand tracker component
+        AFRAME.registerComponent('hand-tracker', {
+            init: function() {
+                this.el.addEventListener('model-loaded', () => {
+                    console.log('Hand model loaded for', this.el.id);
+                });
+                this.tick = AFRAME.utils.throttleTick(this.tick, 100, this);
+            },
             
-            const boxPos = CONFIG.homeBoxPosition;
-            const boxSize = {
-                width: CONFIG.homeBoxWidth,
-                height: 0.2,
-                depth: 0.3
-            };
-            
-            const margin = 0.05;
-            return Math.abs(handPosition.x - boxPos.x) < (boxSize.width / 2 - margin) &&
-                   Math.abs(handPosition.y - boxPos.y) < (boxSize.height / 2 + margin) &&
-                   Math.abs(handPosition.z - boxPos.z) < (boxSize.depth / 2 + margin);
-        }
-
-        // Check collision with target
-        function checkTargetCollision(handPosition) {
-            if (!experimentState.targetActive || !handPosition) return false;
-            
-            const sphere = document.querySelector('#target-sphere');
-            const targetPos = sphere.object3D.position;
-            
-            const distance = Math.sqrt(
-                Math.pow(handPosition.x - targetPos.x, 2) +
-                Math.pow(handPosition.y - targetPos.y, 2) +
-                Math.pow(handPosition.z - targetPos.z, 2)
-            );
-            
-            return distance < CONFIG.sphereRadius + 0.05;
-        }
-
-        // Handle target hit
-        function handleTargetHit(hand) {
-            if (!experimentState.targetActive) return;
-            
-            experimentState.targetActive = false;
-            const hitTime = Date.now();
-            const reactionTime = experimentState.handLeftHome ? 
-                experimentState.handLeftHome - experimentState.trialStartTime : 
-                hitTime - experimentState.trialStartTime;
-            
-            // Determine score
-            const isHighScore = Math.random() > CONFIG.lowScoreProbability;
-            const scoreRange = isHighScore ? CONFIG.highScoreRange : CONFIG.lowScoreRange;
-            const points = Math.floor(Math.random() * (scoreRange[1] - scoreRange[0] + 1)) + scoreRange[0];
-            
-            // Update score
-            experimentState.score += points;
-            document.getElementById('score-display').textContent = `Score: ${experimentState.score}`;
-            
-            // Show score popup
-            const popup = document.querySelector('#score-popup');
-            const sphere = document.querySelector('#target-sphere');
-            const targetPos = sphere.object3D.position;
-            popup.setAttribute('value', `+${points}`);
-            popup.object3D.position.set(targetPos.x, targetPos.y + 0.2, targetPos.z);
-            popup.setAttribute('visible', true);
-            
-            // Play sound
-            playTone(isHighScore ? 880 : 440, isHighScore ? 0.15 : 0.1);
-            
-            // Change sphere color and hide
-            sphere.setAttribute('color', 'blue');
-            
-            setTimeout(() => {
-                sphere.setAttribute('visible', false);
-                popup.setAttribute('visible', false);
-                experimentState.waitingForReturn = true;
-            }, 100);
-            
-            // Record trial data
-            const trialData = {
-                trialNumber: experimentState.currentTrial + 1,
-                targetID: experimentState.trialSequence[experimentState.currentTrial] + 1,
-                handUsed: hand,
-                timeToOnset: reactionTime
-            };
-            
-            experimentState.trialsData.push(trialData);
-            experimentState.currentTrial++;
-            
-            // Check if experiment is complete
-            if (experimentState.currentTrial >= experimentState.trialSequence.length) {
-                endExperiment();
-            }
-        }
-
-        // Start trial
-        function startTrial() {
-            if (experimentState.currentTrial >= experimentState.trialSequence.length || 
-                experimentState.experimentComplete) return;
-            
-            const targetId = experimentState.trialSequence[experimentState.currentTrial];
-            const position = getTargetPosition(targetId);
-            
-            const sphere = document.querySelector('#target-sphere');
-            sphere.object3D.position.set(position.x, position.y, position.z);
-            sphere.setAttribute('color', 'red');
-            sphere.setAttribute('visible', true);
-            
-            experimentState.targetActive = true;
-            experimentState.trialStartTime = Date.now();
-            experimentState.handLeftHome = null;
-            
-            updateStatus(`Trial ${experimentState.currentTrial + 1}/${experimentState.trialSequence.length}`);
-            
-            // Set timeout
-            setTimeout(() => {
-                if (experimentState.targetActive) {
-                    experimentState.targetActive = false;
-                    sphere.setAttribute('visible', false);
-                    experimentState.waitingForReturn = true;
-                    
-                    experimentState.trialsData.push({
-                        trialNumber: experimentState.currentTrial + 1,
-                        targetID: targetId + 1,
-                        handUsed: 'timeout',
-                        timeToOnset: CONFIG.trialTimeout
-                    });
-                    
-                    experimentState.currentTrial++;
-                    if (experimentState.currentTrial >= experimentState.trialSequence.length) {
-                        endExperiment();
-                    }
-                }
-            }, CONFIG.trialTimeout);
-        }
-
-        // Main experiment loop
-        let trialStartTimer = null;
-        
-        function startExperimentLoop() {
-            const scene = document.querySelector('a-scene');
-            const homeBox = document.querySelector('#home-box');
-            
-            function updateLoop(timestamp, frame) {
-                if (!experimentState.vrActive || !frame) return;
+            tick: function() {
+                const hand = this.el.components['hand-tracking-controls'];
+                if (!hand || !hand.mesh || !hand.mesh.visible) return;
                 
-                // Get hand poses
-                const leftHandPose = frame.getJointPose ? 
-                    frame.getJointPose(frame.session.inputSources[0]?.hand?.get('wrist'), referenceSpace) : null;
-                const rightHandPose = frame.getJointPose ? 
-                    frame.getJointPose(frame.session.inputSources[1]?.hand?.get('wrist'), referenceSpace) : null;
+                const handPos = this.el.object3D.position;
+                const homeBox = document.querySelector('#home-box');
+                const homePos = homeBox.object3D.position;
                 
-                // Fallback to simple input source tracking
-                let leftPos = null, rightPos = null;
+                // Check if in home position
+                const inHome = this.isInHome(handPos, homePos);
                 
-                if (frame.session.inputSources) {
-                    frame.session.inputSources.forEach(inputSource => {
-                        if (inputSource.handedness === 'left' && inputSource.gripSpace) {
-                            const pose = frame.getPose(inputSource.gripSpace, referenceSpace);
-                            if (pose) {
-                                leftPos = {
-                                    x: pose.transform.position.x,
-                                    y: pose.transform.position.y,
-                                    z: pose.transform.position.z
-                                };
-                                leftHandMesh.position.set(leftPos.x, leftPos.y, leftPos.z);
-                                leftHandMesh.visible = true;
-                                experimentState.leftHandTracked = true;
-                            }
-                        } else if (inputSource.handedness === 'right' && inputSource.gripSpace) {
-                            const pose = frame.getPose(inputSource.gripSpace, referenceSpace);
-                            if (pose) {
-                                rightPos = {
-                                    x: pose.transform.position.x,
-                                    y: pose.transform.position.y,
-                                    z: pose.transform.position.z
-                                };
-                                rightHandMesh.position.set(rightPos.x, rightPos.y, rightPos.z);
-                                rightHandMesh.visible = true;
-                                experimentState.rightHandTracked = true;
-                            }
-                        }
-                    });
-                }
+                // Update home tracking
+                const isLeft = this.el.id === 'leftHand';
+                const otherHand = document.querySelector(isLeft ? '#rightHand' : '#leftHand');
+                const otherTracker = otherHand.components['hand-tracker'];
                 
-                // Check home position
-                const leftInHome = isHandInHome(leftPos);
-                const rightInHome = isHandInHome(rightPos);
-                const bothInHome = leftInHome && rightInHome;
+                const bothInHome = inHome && otherTracker && otherTracker.isInHome(
+                    otherHand.object3D.position, 
+                    homePos
+                );
                 
                 // Update home box color
-                homeBox.setAttribute('color', bothInHome ? 'green' : 'gray');
-                
-                // Track when hands leave home
-                if (experimentState.targetActive && !experimentState.handLeftHome) {
-                    if (experimentState.bothHandsInHome && (!leftInHome || !rightInHome)) {
+                if (bothInHome !== experimentState.bothHandsInHome) {
+                    experimentState.bothHandsInHome = bothInHome;
+                    homeBox.setAttribute('color', bothInHome ? 'green' : 'gray');
+                    
+                    if (bothInHome) {
+                        this.handleBothHandsInHome();
+                    } else if (experimentState.targetActive && !experimentState.handLeftHome) {
                         experimentState.handLeftHome = Date.now();
                     }
                 }
                 
-                // Check for target collision
-                if (experimentState.targetActive) {
-                    if (checkTargetCollision(leftPos)) {
-                        handleTargetHit('left');
-                    } else if (checkTargetCollision(rightPos)) {
-                        handleTargetHit('right');
-                    }
-                }
-                
-                // Handle state transitions
-                if (bothInHome && !experimentState.bothHandsInHome) {
-                    experimentState.bothHandsInHome = true;
-                    
-                    if (experimentState.waitingForReturn) {
-                        experimentState.waitingForReturn = false;
-                        experimentState.handLeftHome = null;
+                // Check collision with target
+                if (experimentState.targetActive && !experimentState.hitThisTrial) {
+                    const target = document.querySelector('#target-sphere');
+                    if (target.getAttribute('visible')) {
+                        const targetPos = target.object3D.position;
+                        const distance = handPos.distanceTo(targetPos);
                         
-                        if (trialStartTimer) clearTimeout(trialStartTimer);
-                        trialStartTimer = setTimeout(() => {
-                            if (experimentState.bothHandsInHome && !experimentState.experimentComplete) {
-                                startTrial();
-                            }
-                        }, CONFIG.delayBeforeTarget);
-                    } else if (!experimentState.targetActive && experimentState.currentTrial === 0) {
-                        if (trialStartTimer) clearTimeout(trialStartTimer);
-                        trialStartTimer = setTimeout(() => {
-                            if (experimentState.bothHandsInHome && !experimentState.experimentComplete) {
-                                startTrial();
-                            }
-                        }, CONFIG.delayBeforeTarget);
-                    }
-                } else if (!bothInHome && experimentState.bothHandsInHome) {
-                    experimentState.bothHandsInHome = false;
-                    if (trialStartTimer && !experimentState.targetActive) {
-                        clearTimeout(trialStartTimer);
-                        trialStartTimer = null;
+                        if (distance < CONFIG.sphereRadius + 0.05) {
+                            this.handleTargetHit();
+                        }
                     }
                 }
-            }
+                
+                // Update debug
+                document.querySelector('#debug').setAttribute('value', 
+                    `L: ${inHome} R: ${otherTracker?.isInHome(otherHand.object3D.position, homePos)} ` +
+                    `Both: ${bothInHome} Active: ${experimentState.targetActive}`
+                );
+            },
             
-            // Use A-Frame's render loop
-            scene.renderer.xr.enabled = true;
-            scene.renderer.setAnimationLoop(updateLoop);
-        }
-
-        // Audio generation
-        function playTone(frequency, duration) {
-            try {
-                const audioContext = new (window.AudioContext || window.webkitAudioContext)();
-                const oscillator = audioContext.createOscillator();
-                const gainNode = audioContext.createGain();
+            isInHome: function(handPos, homePos) {
+                const margin = 0.05;
+                return Math.abs(handPos.x - homePos.x) < (CONFIG.homeBoxWidth / 2 - margin) &&
+                       Math.abs(handPos.y - homePos.y) < (0.2 / 2 + margin) &&
+                       Math.abs(handPos.z - homePos.z) < (0.3 / 2 + margin);
+            },
+            
+            handleBothHandsInHome: function() {
+                if (experimentState.waitingForReturn) {
+                    experimentState.waitingForReturn = false;
+                    experimentState.handLeftHome = null;
+                    experimentState.hitThisTrial = false;
+                    
+                    setTimeout(() => {
+                        if (experimentState.bothHandsInHome) {
+                            this.startTrial();
+                        }
+                    }, CONFIG.delayBeforeTarget);
+                } else if (!experimentState.targetActive && experimentState.currentTrial === 0) {
+                    setTimeout(() => {
+                        if (experimentState.bothHandsInHome) {
+                            this.startTrial();
+                        }
+                    }, CONFIG.delayBeforeTarget);
+                }
+            },
+            
+            startTrial: function() {
+                if (experimentState.currentTrial >= experimentState.trialSequence.length || 
+                    experimentState.experimentComplete || experimentState.targetActive) return;
                 
-                oscillator.connect(gainNode);
-                gainNode.connect(audioContext.destination);
+                const targetId = experimentState.trialSequence[experimentState.currentTrial];
+                const position = getTargetPosition(targetId);
                 
-                oscillator.frequency.value = frequency;
-                oscillator.type = 'sine';
+                const sphere = document.querySelector('#target-sphere');
+                sphere.object3D.position.set(position.x, position.y, position.z);
+                sphere.setAttribute('color', 'red');
+                sphere.setAttribute('visible', true);
                 
-                gainNode.gain.setValueAtTime(0.3, audioContext.currentTime);
-                gainNode.gain.exponentialRampToValueAtTime(0.01, audioContext.currentTime + duration);
+                experimentState.targetActive = true;
+                experimentState.trialStartTime = Date.now();
+                experimentState.handLeftHome = null;
+                experimentState.hitThisTrial = false;
                 
-                oscillator.start(audioContext.currentTime);
-                oscillator.stop(audioContext.currentTime + duration);
-            } catch (e) {
-                console.log('Audio error:', e);
+                setTimeout(() => {
+                    if (experimentState.targetActive) {
+                        this.handleTimeout();
+                    }
+                }, CONFIG.trialTimeout);
+            },
+            
+            handleTargetHit: function() {
+                if (!experimentState.targetActive || experimentState.hitThisTrial) return;
+                
+                experimentState.hitThisTrial = true;
+                experimentState.targetActive = false;
+                
+                const reactionTime = experimentState.handLeftHome ? 
+                    experimentState.handLeftHome - experimentState.trialStartTime : 
+                    Date.now() - experimentState.trialStartTime;
+                
+                // Score calculation
+                const isHighScore = Math.random() > CONFIG.lowScoreProbability;
+                const scoreRange = isHighScore ? CONFIG.highScoreRange : CONFIG.lowScoreRange;
+                const points = Math.floor(Math.random() * (scoreRange[1] - scoreRange[0] + 1)) + scoreRange[0];
+                
+                experimentState.score += points;
+                document.getElementById('score-display').textContent = `Score: ${experimentState.score}`;
+                
+                // Visual feedback
+                const sphere = document.querySelector('#target-sphere');
+                const popup = document.querySelector('#score-popup');
+                const pos = sphere.object3D.position;
+                
+                sphere.setAttribute('color', 'blue');
+                popup.setAttribute('value', `+${points}`);
+                popup.object3D.position.set(pos.x, pos.y + 0.2, pos.z);
+                popup.setAttribute('visible', true);
+                
+                this.playTone(isHighScore ? 880 : 440, isHighScore ? 0.15 : 0.1);
+                
+                setTimeout(() => {
+                    sphere.setAttribute('visible', false);
+                    popup.setAttribute('visible', false);
+                    experimentState.waitingForReturn = true;
+                }, 100);
+                
+                // Record data
+                experimentState.trialsData.push({
+                    trialNumber: experimentState.currentTrial + 1,
+                    targetID: experimentState.trialSequence[experimentState.currentTrial] + 1,
+                    handUsed: this.el.id === 'leftHand' ? 'left' : 'right',
+                    timeToOnset: reactionTime
+                });
+                
+                experimentState.currentTrial++;
+                
+                if (experimentState.currentTrial >= experimentState.trialSequence.length) {
+                    this.endExperiment();
+                }
+            },
+            
+            handleTimeout: function() {
+                experimentState.targetActive = false;
+                document.querySelector('#target-sphere').setAttribute('visible', false);
+                experimentState.waitingForReturn = true;
+                
+                experimentState.trialsData.push({
+                    trialNumber: experimentState.currentTrial + 1,
+                    targetID: experimentState.trialSequence[experimentState.currentTrial] + 1,
+                    handUsed: 'timeout',
+                    timeToOnset: CONFIG.trialTimeout
+                });
+                
+                experimentState.currentTrial++;
+                if (experimentState.currentTrial >= experimentState.trialSequence.length) {
+                    this.endExperiment();
+                }
+            },
+            
+            endExperiment: function() {
+                experimentState.experimentComplete = true;
+                document.querySelector('#thank-you').setAttribute('visible', true);
+                console.log('Experiment complete! Press X to download data.');
+            },
+            
+            playTone: function(freq, duration) {
+                try {
+                    const ctx = new AudioContext();
+                    const osc = ctx.createOscillator();
+                    const gain = ctx.createGain();
+                    osc.connect(gain);
+                    gain.connect(ctx.destination);
+                    osc.frequency.value = freq;
+                    gain.gain.setValueAtTime(0.3, ctx.currentTime);
+                    gain.gain.exponentialRampToValueAtTime(0.01, ctx.currentTime + duration);
+                    osc.start();
+                    osc.stop(ctx.currentTime + duration);
+                } catch(e) {}
             }
-        }
-
-        // End experiment
-        function endExperiment() {
-            experimentState.experimentComplete = true;
-            document.querySelector('#thank-you').setAttribute('visible', true);
-            document.querySelector('#target-sphere').setAttribute('visible', false);
-            updateStatus('Experiment complete! Press X to download data.');
-        }
+        });
 
         // CSV export
         function exportToCSV() {
@@ -522,15 +393,10 @@
             const a = document.createElement('a');
             a.href = url;
             a.download = `hand_tracking_experiment_${Date.now()}.csv`;
-            document.body.appendChild(a);
             a.click();
-            document.body.removeChild(a);
             URL.revokeObjectURL(url);
-            
-            console.log('Data exported!');
         }
 
-        // Keyboard listener
         document.addEventListener('keydown', (e) => {
             if (e.key === 'x' || e.key === 'X') {
                 exportToCSV();
@@ -539,19 +405,8 @@
 
         // Initialize
         window.addEventListener('load', () => {
-            updateStatus('Page loaded, initializing...');
-            
-            // Generate trial sequence
             experimentState.trialSequence = generateTrialSequence();
-            console.log('Generated', experimentState.trialSequence.length, 'trials');
-            
-            // Wait for A-Frame to initialize
-            const scene = document.querySelector('a-scene');
-            if (scene.hasLoaded) {
-                initXR();
-            } else {
-                scene.addEventListener('loaded', initXR);
-            }
+            console.log('Experiment ready with', experimentState.trialSequence.length, 'trials');
         });
     </script>
 </body>
