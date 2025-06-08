@@ -4,55 +4,90 @@
     <meta charset="utf-8">
     <title>Hand Tracking Reaching Experiment</title>
     <meta name="description" content="VR Hand Tracking Experiment for Quest 3">
-    <script src="https://aframe.io/releases/1.4.0/aframe.min.js"></script>
-    <script src="https://cdn.jsdelivr.net/gh/aframevr/aframe@master/dist/aframe-master.js"></script>
+    <script src="https://aframe.io/releases/1.5.0/aframe.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/gh/aframevr/aframe@master/examples/showcase/hand-tracking/components/hand-tracking-controls.js"></script>
+    <script src="https://cdn.jsdelivr.net/gh/aframevr/aframe@master/examples/showcase/hand-tracking/components/hand-tracking-grab-controls.js"></script>
     <style>
+        body {
+            font-family: Arial, sans-serif;
+        }
+        #info {
+            position: fixed;
+            top: 10px;
+            left: 10px;
+            color: white;
+            background: rgba(0,0,0,0.7);
+            padding: 10px;
+            border-radius: 5px;
+            z-index: 1000;
+        }
         #score-display {
             position: fixed;
             top: 10px;
             left: 50%;
             transform: translateX(-50%);
             color: white;
-            font-family: Arial, sans-serif;
             font-size: 24px;
             z-index: 1000;
-            background: rgba(0,0,0,0.5);
+            background: rgba(0,0,0,0.7);
             padding: 10px 20px;
             border-radius: 5px;
         }
     </style>
 </head>
 <body>
+    <div id="info">Press X to export CSV</div>
     <div id="score-display">Score: 0</div>
     
     <a-scene 
         vr-mode-ui="enabled: true"
         background="color: #212121"
-        webxr="requiredFeatures: hand-tracking; optionalFeatures: bounded-floor">
+        webxr="requiredFeatures: hand-tracking"
+        hand-tracking-controls>
         
-        <!-- Camera with hand tracking -->
-        <a-entity id="rig" position="0 0 0">
-            <a-camera position="0 1.6 0" wasd-controls="enabled: false">
-                <a-entity id="leftHand" hand-tracking="hand: left; modelStyle: mesh; modelColor: #FFF"></a-entity>
-                <a-entity id="rightHand" hand-tracking="hand: right; modelStyle: mesh; modelColor: #FFF"></a-entity>
+        <!-- Assets -->
+        <a-assets>
+            <a-mixin id="sphere-highlight"
+                     geometry="primitive: sphere; radius: 0.04"
+                     material="color: red; shader: standard">
+            </a-mixin>
+        </a-assets>
+        
+        <!-- Camera rig with hands -->
+        <a-entity id="cameraRig" position="0 0 0">
+            <a-camera 
+                id="camera"
+                position="0 1.6 0" 
+                look-controls="enabled: false"
+                wasd-controls="enabled: false">
             </a-camera>
+            
+            <!-- Hand entities -->
+            <a-entity 
+                id="leftHand"
+                hand-tracking-controls="hand: left; modelStyle: mesh; modelColor: #fff"
+                hand-collision-detector>
+            </a-entity>
+            
+            <a-entity 
+                id="rightHand"
+                hand-tracking-controls="hand: right; modelStyle: mesh; modelColor: #fff"
+                hand-collision-detector>
+            </a-entity>
         </a-entity>
         
         <!-- Home position box -->
         <a-box id="home-box" 
-               position="0 1.1 -0.5" 
+               position="0 1.1 -0.1" 
                width="1" 
                height="0.2" 
                depth="0.3" 
-               material="color: gray; transparent: true; opacity: 0.5"
-               geometry="primitive: box">
+               material="color: gray; transparent: true; opacity: 0.7">
         </a-box>
         
         <!-- Target sphere (initially hidden) -->
         <a-sphere id="target-sphere" 
-                  position="0 1.6 -1" 
-                  radius="0.04" 
-                  material="color: red"
+                  mixin="sphere-highlight"
                   visible="false">
         </a-sphere>
         
@@ -61,6 +96,7 @@
                 value="" 
                 position="0 2 -1" 
                 align="center" 
+                width="6"
                 color="yellow"
                 visible="false">
         </a-text>
@@ -70,14 +106,10 @@
                 value="Thank you!" 
                 position="0 1.6 -1" 
                 align="center" 
+                width="8"
                 color="white"
-                visible="false"
-                scale="2 2 2">
+                visible="false">
         </a-text>
-        
-        <!-- Audio sources -->
-        <a-sound id="boop-sound" src="data:audio/wav;base64,UklGRjwFAABXQVZFZm10IBAAAAABAAEARKwAAIhYAQACABAAZGF0YRgFAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA"></a-sound>
-        <a-sound id="ding-sound" src="data:audio/wav;base64,UklGRjwFAABXQVZFZm10IBAAAAABAAEARKwAAIhYAQACABAAZGF0YRgFAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA"></a-sound>
     </a-scene>
 
     <script>
@@ -85,9 +117,9 @@
         const CONFIG = {
             targetDistance: 1.0, // meters from user
             targetHeight: 1.6,   // eye level
-            sphereRadius: 0.04,  // 8cm diameter
+            sphereRadius: 0.04,  // 8cm diameter (4cm radius)
             homeBoxWidth: 1.0,   // 1m wide
-            homeBoxPosition: {x: 0, y: 1.1, z: -0.5}, // waist level, 10cm in front
+            homeBoxPosition: {x: 0, y: 1.1, z: -0.1}, // waist level, 10cm in front
             trialTimeout: 300000, // 300 seconds
             trialsPerTarget: 10,
             totalTargets: 11,
@@ -110,38 +142,41 @@
             bothHandsInHome: false,
             targetActive: false,
             waitingForReturn: false,
-            experimentComplete: false
+            experimentComplete: false,
+            trialSequence: []
         };
 
         // Generate trial sequence
         function generateTrialSequence() {
             const sequence = [];
             const targetsNeeded = new Array(11).fill(CONFIG.trialsPerTarget);
+            let lastTarget = -1;
             
             while (sequence.length < CONFIG.totalTargets * CONFIG.trialsPerTarget) {
                 const availableTargets = [];
                 for (let i = 0; i < 11; i++) {
-                    if (targetsNeeded[i] > 0 && i !== experimentState.lastTarget) {
+                    if (targetsNeeded[i] > 0 && i !== lastTarget) {
                         availableTargets.push(i);
                     }
                 }
                 
                 if (availableTargets.length === 0) {
-                    // Reset last target if we're stuck
-                    experimentState.lastTarget = -1;
-                    continue;
+                    // If stuck, allow repeat
+                    for (let i = 0; i < 11; i++) {
+                        if (targetsNeeded[i] > 0) {
+                            availableTargets.push(i);
+                        }
+                    }
                 }
                 
                 const targetIndex = availableTargets[Math.floor(Math.random() * availableTargets.length)];
                 sequence.push(targetIndex);
                 targetsNeeded[targetIndex]--;
-                experimentState.lastTarget = targetIndex;
+                lastTarget = targetIndex;
             }
             
             return sequence;
         }
-
-        const trialSequence = generateTrialSequence();
 
         // Calculate target positions
         function getTargetPosition(targetId) {
@@ -155,40 +190,67 @@
             };
         }
 
-        // Hand tracking and collision detection
+        // Simple audio generation
+        function playTone(frequency, duration) {
+            const audioContext = new (window.AudioContext || window.webkitAudioContext)();
+            const oscillator = audioContext.createOscillator();
+            const gainNode = audioContext.createGain();
+            
+            oscillator.connect(gainNode);
+            gainNode.connect(audioContext.destination);
+            
+            oscillator.frequency.value = frequency;
+            oscillator.type = 'sine';
+            
+            gainNode.gain.setValueAtTime(0.3, audioContext.currentTime);
+            gainNode.gain.exponentialRampToValueAtTime(0.01, audioContext.currentTime + duration);
+            
+            oscillator.start(audioContext.currentTime);
+            oscillator.stop(audioContext.currentTime + duration);
+        }
+
+        // Hand collision detection component
         AFRAME.registerComponent('hand-collision-detector', {
+            schema: {},
+            
             init: function() {
-                this.el.addEventListener('model-loaded', () => {
-                    this.handMesh = this.el.getObject3D('mesh');
-                });
+                this.handTracking = this.el.components['hand-tracking-controls'];
+                this.isTracked = false;
+                this.hitThisTrial = false;
             },
             
             tick: function() {
-                if (!this.handMesh || !experimentState.targetActive) return;
+                if (!this.handTracking || !experimentState.targetActive || this.hitThisTrial) return;
                 
-                const targetSphere = document.querySelector('#target-sphere');
-                const targetPos = targetSphere.getAttribute('position');
-                const handPos = this.el.object3D.getWorldPosition(new THREE.Vector3());
-                
-                // Check collision with sphere
-                const distance = handPos.distanceTo(
-                    new THREE.Vector3(targetPos.x, targetPos.y, targetPos.z)
-                );
-                
-                if (distance < CONFIG.sphereRadius + 0.1) { // Add some tolerance
-                    this.handleTargetHit();
+                // Check if hand is tracked
+                if (this.handTracking.hand && this.handTracking.hand.visible) {
+                    const targetSphere = document.querySelector('#target-sphere');
+                    if (!targetSphere.getAttribute('visible')) return;
+                    
+                    const targetPos = targetSphere.object3D.position;
+                    const handPos = this.el.object3D.position;
+                    
+                    // Check collision
+                    const distance = handPos.distanceTo(targetPos);
+                    
+                    if (distance < CONFIG.sphereRadius + 0.05) { // Add tolerance
+                        this.handleTargetHit();
+                    }
                 }
             },
             
             handleTargetHit: function() {
-                if (!experimentState.targetActive) return;
+                if (!experimentState.targetActive || this.hitThisTrial) return;
                 
+                this.hitThisTrial = true;
                 experimentState.targetActive = false;
                 const hitTime = Date.now();
-                const reactionTime = hitTime - experimentState.trialStartTime;
+                const reactionTime = experimentState.handLeftHome ? 
+                    experimentState.handLeftHome - experimentState.trialStartTime : 
+                    hitTime - experimentState.trialStartTime;
                 
                 // Determine score
-                const isHighScore = Math.random() < (1 - CONFIG.lowScoreProbability);
+                const isHighScore = Math.random() > CONFIG.lowScoreProbability;
                 const scoreRange = isHighScore ? CONFIG.highScoreRange : CONFIG.lowScoreRange;
                 const points = Math.floor(Math.random() * (scoreRange[1] - scoreRange[0] + 1)) + scoreRange[0];
                 
@@ -200,12 +262,11 @@
                 const popup = document.querySelector('#score-popup');
                 const targetPos = document.querySelector('#target-sphere').getAttribute('position');
                 popup.setAttribute('value', `+${points}`);
-                popup.setAttribute('position', `${targetPos.x} ${targetPos.y + 0.1} ${targetPos.z}`);
+                popup.setAttribute('position', `${targetPos.x} ${targetPos.y + 0.2} ${targetPos.z}`);
                 popup.setAttribute('visible', true);
                 
                 // Play sound
-                const sound = isHighScore ? document.querySelector('#ding-sound') : document.querySelector('#boop-sound');
-                sound.components.sound.playSound();
+                playTone(isHighScore ? 880 : 440, isHighScore ? 0.15 : 0.1);
                 
                 // Change sphere color and hide
                 const sphere = document.querySelector('#target-sphere');
@@ -215,21 +276,26 @@
                     sphere.setAttribute('visible', false);
                     popup.setAttribute('visible', false);
                     experimentState.waitingForReturn = true;
+                    
+                    // Reset hit flag for both hands
+                    document.querySelectorAll('[hand-collision-detector]').forEach(el => {
+                        el.components['hand-collision-detector'].hitThisTrial = false;
+                    });
                 }, 100);
                 
                 // Record trial data
                 const trialData = {
                     trialNumber: experimentState.currentTrial + 1,
-                    targetID: trialSequence[experimentState.currentTrial] + 1, // 1-indexed
-                    handUsed: this.el.getAttribute('hand-tracking').hand,
-                    timeToOnset: experimentState.handLeftHome ? experimentState.handLeftHome - experimentState.trialStartTime : 0
+                    targetID: experimentState.trialSequence[experimentState.currentTrial] + 1,
+                    handUsed: this.el.getAttribute('hand-tracking-controls').data.hand,
+                    timeToOnset: reactionTime
                 };
                 
                 experimentState.trialsData.push(trialData);
                 experimentState.currentTrial++;
                 
                 // Check if experiment is complete
-                if (experimentState.currentTrial >= trialSequence.length) {
+                if (experimentState.currentTrial >= experimentState.trialSequence.length) {
                     endExperiment();
                 }
             }
@@ -241,6 +307,7 @@
                 this.homeBox = document.querySelector('#home-box');
                 this.leftHand = document.querySelector('#leftHand');
                 this.rightHand = document.querySelector('#rightHand');
+                this.trialTimer = null;
             },
             
             tick: function() {
@@ -268,30 +335,44 @@
                         experimentState.waitingForReturn = false;
                         experimentState.handLeftHome = null;
                         
+                        // Clear any existing timer
+                        if (this.trialTimer) {
+                            clearTimeout(this.trialTimer);
+                        }
+                        
                         // Start next trial after delay
-                        setTimeout(() => {
-                            if (experimentState.bothHandsInHome) {
-                                startTrial();
+                        this.trialTimer = setTimeout(() => {
+                            if (experimentState.bothHandsInHome && !experimentState.experimentComplete) {
+                                this.startTrial();
                             }
                         }, CONFIG.delayBeforeTarget);
                     } else if (!experimentState.targetActive && experimentState.currentTrial === 0) {
                         // Start first trial
-                        setTimeout(() => {
-                            if (experimentState.bothHandsInHome) {
-                                startTrial();
+                        this.trialTimer = setTimeout(() => {
+                            if (experimentState.bothHandsInHome && !experimentState.experimentComplete) {
+                                this.startTrial();
                             }
                         }, CONFIG.delayBeforeTarget);
                     }
                 } else if (!bothInHome && experimentState.bothHandsInHome) {
                     experimentState.bothHandsInHome = false;
+                    
+                    // Cancel trial start if hands leave home
+                    if (this.trialTimer && !experimentState.targetActive) {
+                        clearTimeout(this.trialTimer);
+                        this.trialTimer = null;
+                    }
                 }
             },
             
             isHandInHome: function(hand) {
-                if (!hand.object3D) return false;
+                const handTracking = hand.components['hand-tracking-controls'];
+                if (!handTracking || !handTracking.hand || !handTracking.hand.visible) {
+                    return false;
+                }
                 
-                const handPos = hand.object3D.getWorldPosition(new THREE.Vector3());
-                const boxPos = this.homeBox.getAttribute('position');
+                const handPos = hand.object3D.position;
+                const boxPos = this.homeBox.object3D.position;
                 const boxSize = {
                     width: CONFIG.homeBoxWidth,
                     height: 0.2,
@@ -299,55 +380,58 @@
                 };
                 
                 // Check if most of hand is within box bounds
-                const margin = 0.05; // Allow some parts to be outside
+                const margin = 0.05;
                 return Math.abs(handPos.x - boxPos.x) < (boxSize.width / 2 - margin) &&
-                       Math.abs(handPos.y - boxPos.y) < (boxSize.height / 2 - margin) &&
-                       Math.abs(handPos.z - boxPos.z) < (boxSize.depth / 2 - margin);
+                       Math.abs(handPos.y - boxPos.y) < (boxSize.height / 2 + margin) &&
+                       Math.abs(handPos.z - boxPos.z) < (boxSize.depth / 2 + margin);
+            },
+            
+            startTrial: function() {
+                if (experimentState.currentTrial >= experimentState.trialSequence.length || 
+                    experimentState.experimentComplete) return;
+                
+                const targetId = experimentState.trialSequence[experimentState.currentTrial];
+                const position = getTargetPosition(targetId);
+                
+                const sphere = document.querySelector('#target-sphere');
+                sphere.object3D.position.set(position.x, position.y, position.z);
+                sphere.setAttribute('material', 'color', 'red');
+                sphere.setAttribute('visible', true);
+                
+                experimentState.targetActive = true;
+                experimentState.trialStartTime = Date.now();
+                experimentState.handLeftHome = null;
+                
+                // Set timeout for trial
+                setTimeout(() => {
+                    if (experimentState.targetActive) {
+                        // Trial timed out
+                        experimentState.targetActive = false;
+                        sphere.setAttribute('visible', false);
+                        experimentState.waitingForReturn = true;
+                        
+                        // Record timeout
+                        experimentState.trialsData.push({
+                            trialNumber: experimentState.currentTrial + 1,
+                            targetID: targetId + 1,
+                            handUsed: 'timeout',
+                            timeToOnset: CONFIG.trialTimeout
+                        });
+                        
+                        experimentState.currentTrial++;
+                        if (experimentState.currentTrial >= experimentState.trialSequence.length) {
+                            endExperiment();
+                        }
+                    }
+                }, CONFIG.trialTimeout);
             }
         });
-
-        function startTrial() {
-            if (experimentState.currentTrial >= trialSequence.length) return;
-            
-            const targetId = trialSequence[experimentState.currentTrial];
-            const position = getTargetPosition(targetId);
-            
-            const sphere = document.querySelector('#target-sphere');
-            sphere.setAttribute('position', position);
-            sphere.setAttribute('material', 'color', 'red');
-            sphere.setAttribute('visible', true);
-            
-            experimentState.targetActive = true;
-            experimentState.trialStartTime = Date.now();
-            
-            // Set timeout for trial
-            setTimeout(() => {
-                if (experimentState.targetActive) {
-                    // Trial timed out
-                    experimentState.targetActive = false;
-                    sphere.setAttribute('visible', false);
-                    experimentState.waitingForReturn = true;
-                    
-                    // Record timeout
-                    experimentState.trialsData.push({
-                        trialNumber: experimentState.currentTrial + 1,
-                        targetID: targetId + 1,
-                        handUsed: 'timeout',
-                        timeToOnset: CONFIG.trialTimeout
-                    });
-                    
-                    experimentState.currentTrial++;
-                    if (experimentState.currentTrial >= trialSequence.length) {
-                        endExperiment();
-                    }
-                }
-            }, CONFIG.trialTimeout);
-        }
 
         function endExperiment() {
             experimentState.experimentComplete = true;
             document.querySelector('#thank-you').setAttribute('visible', true);
             document.querySelector('#target-sphere').setAttribute('visible', false);
+            console.log('Experiment complete! Press X to download data.');
         }
 
         // CSV export
@@ -366,6 +450,8 @@
             a.click();
             document.body.removeChild(a);
             URL.revokeObjectURL(url);
+            
+            console.log('Data exported!');
         }
 
         // Keyboard listener for CSV export
@@ -375,56 +461,22 @@
             }
         });
 
-        // Initialize components
+        // Initialize experiment
         document.addEventListener('DOMContentLoaded', () => {
-            // Add collision detection to hands
-            document.querySelector('#leftHand').setAttribute('hand-collision-detector', '');
-            document.querySelector('#rightHand').setAttribute('hand-collision-detector', '');
+            // Generate trial sequence
+            experimentState.trialSequence = generateTrialSequence();
+            console.log('Experiment ready. Trial sequence generated:', experimentState.trialSequence.length, 'trials');
             
             // Add home position tracker to scene
             document.querySelector('a-scene').setAttribute('home-position-tracker', '');
         });
 
-        // Generate simple audio tones
-        function generateTone(frequency, duration) {
-            const sampleRate = 44100;
-            const samples = duration * sampleRate;
-            const buffer = new ArrayBuffer(44 + samples * 2);
-            const view = new DataView(buffer);
-            
-            // WAV header
-            const writeString = (offset, string) => {
-                for (let i = 0; i < string.length; i++) {
-                    view.setUint8(offset + i, string.charCodeAt(i));
-                }
-            };
-            
-            writeString(0, 'RIFF');
-            view.setUint32(4, 36 + samples * 2, true);
-            writeString(8, 'WAVE');
-            writeString(12, 'fmt ');
-            view.setUint32(16, 16, true);
-            view.setUint16(20, 1, true);
-            view.setUint16(22, 1, true);
-            view.setUint32(24, sampleRate, true);
-            view.setUint32(28, sampleRate * 2, true);
-            view.setUint16(32, 2, true);
-            view.setUint16(34, 16, true);
-            writeString(36, 'data');
-            view.setUint32(40, samples * 2, true);
-            
-            // Generate sine wave
-            for (let i = 0; i < samples; i++) {
-                const sample = Math.sin(2 * Math.PI * frequency * i / sampleRate) * 0.5;
-                view.setInt16(44 + i * 2, sample * 32767, true);
-            }
-            
-            return 'data:audio/wav;base64,' + btoa(String.fromCharCode(...new Uint8Array(buffer)));
-        }
-        
-        // Set up audio sources
-        document.querySelector('#boop-sound').setAttribute('src', generateTone(440, 0.1));
-        document.querySelector('#ding-sound').setAttribute('src', generateTone(880, 0.15));
+        // Debug info
+        window.addEventListener('load', () => {
+            console.log('Hand Tracking Experiment Loaded');
+            console.log('Configuration:', CONFIG);
+            console.log('Put both hands in the home box to begin');
+        });
     </script>
 </body>
 </html>
