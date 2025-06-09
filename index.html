@@ -1,64 +1,28 @@
-<!DOCTYPE html>
 <html>
-<head>
-  <meta charset="utf-8" />
-  <title>Hand-trigger example</title>
+ <head>
+    <script src="https://aframe.io/releases/1.7.0/aframe.min.js"></script>  <!-- Load A-Frame Version 1.7.0 -->
+    <script src=""></script>
+ </head>
 
-  <!-- A-Frame itself -->
-  <script src="https://aframe.io/releases/1.7.0/aframe.min.js"></script>
-</head>
+ <body>
+  <a-scene obb-collider="showColliders: true">                              <!-- Show colliders for debugging -->
 
-<body>
-  <!-- 1️⃣  Turn on the built-in collider system so we can see the boxes while debugging -->
-  <a-scene obb-collider="showColliders: true">
+    <a-sky color="#ECECEC">
+    </a-sky>
 
-    <!-- 2️⃣  A light grey sky so we can see our hands and the cube -->
-    <a-sky color="#ECECEC"></a-sky>
-
-    <!-- 3️⃣  The cube that should react to a touch -->
-    <a-box id="targetBox"
-           position="0 1.5 -0.7"     <!-- about chest-high, half a metre in front -->
-           depth="0.25" height="0.25" width="0.25"
-           color="#ff7043"            <!-- orange, easy to spot -->
-           obb-collider               <!-- ✨ make this box “collidable” -->
-           box-trigger>               <!-- custom component added just below -->
-    </a-box>
-
-    <!-- 4️⃣  Your hands (you already had these) -->
-    <a-entity id="leftHand"
-              hand-tracking-controls="hand: left;"
-              obb-collider>           <!-- give the hand a collider too -->
+    <a-entity id="leftHand" 
+              hand-tracking-controls="hand: left;">                         <!-- Add entity with hand-tracking-controls component; left hand -->
+    </a-entity>
+    <a-entity id="rightHand" 
+              hand-tracking-controls="hand: right;">                        <!-- Add entity with hand-tracking-controls component; right hand -->
     </a-entity>
 
-    <a-entity id="rightHand"
-              hand-tracking-controls="hand: right;"
-              obb-collider>
-    </a-entity>
+    <a-sphere position="0 1.25 -5"                                          
+              radius="1.25" 
+              color="#EF2D5E" 
+              grabbable>                                                    <!-- Add sphere with grabbable component -->
+    </a-sphere>
 
   </a-scene>
-
-  <!-- 5️⃣  Tiny bit of JavaScript: when a collision starts, do something -->
-  <script>
-    /* Custom component that runs on the box */
-    AFRAME.registerComponent('box-trigger', {
-      init () {
-        const boxEl = this.el;
-
-        /* fires every time ANYTHING with an obb-collider touches the cube */
-        boxEl.addEventListener('obbcollisionstarted', evt => {
-          const collider = evt.detail.withEl;           // who touched me?
-          console.log('Cube touched by:', collider.id); // appears in browser console
-
-          // 👉 Replace this with whatever you want to happen
-          boxEl.setAttribute('color', '#4caf50');       // example: turn cube green
-        });
-
-        /* optional: change it back when the hand leaves */
-        boxEl.addEventListener('obbcollisionended', () => {
-          boxEl.setAttribute('color', '#ff7043');       // orange again
-        });
-      }
-    });
-  </script>
-</body>
+ </body>
 </html>
