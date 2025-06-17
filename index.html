@@ -1,32 +1,20 @@
+<!DOCTYPE html>
 <html>
- <head>
-    <script src="https://aframe.io/releases/1.7.0/aframe.min.js"></script> <!-- Load A-Frame Version 1.7.0 -->
-    <script src="https://cdn.jsdelivr.net/gh/c-frame/aframe-extras@7.5.4/dist/aframe-extras.misc.min.js"></script>
- </head>
-
- <body>
-  <a-scene>                              
-
-    <a-sky color="grey">
-    </a-sky>
-
-    <a-entity id="leftHand" 
-              hand-tracking-controls="hand: left;"
-              sphere-collider="objects: .collidable; radius: 0.2; debug: true"> 
-    </a-entity>
-    <a-entity id="rightHand" 
-              hand-tracking-controls="hand: right;"
-              sphere-collider="objects: .collidable; radius: 0.2; debug: true"> 
-    </a-entity>
-
-    <a-sphere position="0 1.25 -1"                                          
-              radius="0.5" 
-              color="red"
-              class="collidable" 
-              animation__hit="property: color; to: blue; startEvents: hit; dur: 200"
-              animation__hitend="property: color; to: red; startEvents: hitend; dur: 200"> 
-    </a-sphere>
-
-  </a-scene>
- </body>
+<head>
+    <script src="https://aframe.io/releases/1.7.0/aframe.min.js"></script>
+    <script src="controller-detector.js"></script>
+</head>
+<body>
+    <a-scene>
+        <a-box 
+            id="cube"
+            position="0 1.5 -1" 
+            color="#ff0000"
+            controller-detector>
+        </a-box>
+        
+        <a-entity meta-touch-controls="hand: left"></a-entity>
+        <a-entity meta-touch-controls="hand: right"></a-entity>
+    </a-scene>
+</body>
 </html>
