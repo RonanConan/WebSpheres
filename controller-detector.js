@@ -20,7 +20,7 @@ AFRAME.registerComponent('controller-detector', {
     },
     
     isInsideSphere: function(controllerPos, spherePos) {
-        const size = 0.5;
+        const size = 0.3;
         return Math.abs(controllerPos.x - spherePos.x) < size &&
                Math.abs(controllerPos.y - spherePos.y) < size &&
                Math.abs(controllerPos.z - spherePos.z) < size;
