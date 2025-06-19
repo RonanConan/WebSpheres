@@ -1,13 +1,35 @@
-AFRAME.registerComponent('controller-detector', {
+AFRAME.registerComponent('sphere-manager', {
     init: function() {
         this.currentState = 'invisible';
+        this.activeSphere = null;
+        this.allSpheres = [];
         this.appearTimer = null;
         this.disappearTimer = null;
+        this.createSpheres();
+    },
+    
+    createSpheres: function() {
+        const radius = 2;
+        const height = 1.5;
+        
+        for (let i = 0; i < 11; i++) {
+            let angle = -90 + (i * 18);
+            let x = radius * Math.sin(angle * Math.PI / 180);
+            let z = -radius * Math.cos(angle * Math.PI / 180);
+            
+            let sphere = document.createElement('a-sphere');
+            sphere.setAttribute('position', `${x} ${height} ${z}`);
+            sphere.setAttribute('color', '#ff0000');
+            sphere.setAttribute('radius', '0.2');
+            sphere.setAttribute('visible', 'false');
+            sphere.setAttribute('id', `sphere-${i}`);
+            
+            this.el.sceneEl.appendChild(sphere);
+            this.allSpheres.push(sphere);
+        }
     },
     
     tick: function() {
-        const sphere = this.el;
-        const spherePos = sphere.getAttribute('position');
         const rectangle = document.querySelector('#rectangle');
         const rectanglePos = rectangle.getAttribute('position');
         const leftController = document.querySelector('[meta-touch-controls="hand: left"]');
@@ -19,6 +41,7 @@ AFRAME.registerComponent('controller-detector', {
                 const rightPos = rightController.getAttribute('position');
                 if (this.isInsideRectangle(leftPos, rectanglePos) && this.isInsideRectangle(rightPos, rectanglePos)) {
                     if (!this.appearTimer) {
+                        this.selectRandomSphere();
                         this.startAppearTimer();
                         this.currentState = 'waiting-to-appear';
                     }
@@ -33,27 +56,34 @@ AFRAME.registerComponent('controller-detector', {
                 if (!this.isInsideRectangle(leftPos, rectanglePos) || !this.isInsideRectangle(rightPos, rectanglePos)) {
                     clearTimeout(this.appearTimer);
                     this.appearTimer = null;
+                    this.activeSphere = null;
                     this.currentState = 'invisible';
                 }
             }
         }
         
-        if (this.currentState === 'visible') {
+        if (this.currentState === 'visible' && this.activeSphere) {
+            const spherePos = this.activeSphere.getAttribute('position');
             let leftHit = leftController && this.isInsideSphere(leftController.getAttribute('position'), spherePos);
             let rightHit = rightController && this.isInsideSphere(rightController.getAttribute('position'), spherePos);
             
             if ((leftHit || rightHit) && !this.disappearTimer) {
-                sphere.setAttribute('color', '#0000ff');
+                this.activeSphere.setAttribute('color', '#0000ff');
                 this.startDisappearTimer();
                 this.currentState = 'waiting-to-disappear';
             }
         }
     },
     
+    selectRandomSphere: function() {
+        const randomIndex = Math.floor(Math.random() * 11);
+        this.activeSphere = this.allSpheres[randomIndex];
+    },
+    
     startAppearTimer: function() {
         this.appearTimer = setTimeout(() => {
-            this.el.setAttribute('visible', true);
-            this.el.setAttribute('color', '#ff0000');
+            this.activeSphere.setAttribute('visible', true);
+            this.activeSphere.setAttribute('color', '#ff0000');
             this.currentState = 'visible';
             this.appearTimer = null;
         }, 500);
@@ -61,14 +91,15 @@ AFRAME.registerComponent('controller-detector', {
     
     startDisappearTimer: function() {
         this.disappearTimer = setTimeout(() => {
-            this.el.setAttribute('visible', false);
+            this.activeSphere.setAttribute('visible', false);
+            this.activeSphere = null;
             this.currentState = 'invisible';
             this.disappearTimer = null;
         }, 300);
     },
     
     isInsideSphere: function(controllerPos, spherePos) {
-        const size = 0.3;
+        const size = 0.2;
         return Math.abs(controllerPos.x - spherePos.x) < size &&
                Math.abs(controllerPos.y - spherePos.y) < size &&
                Math.abs(controllerPos.z - spherePos.z) < size;
