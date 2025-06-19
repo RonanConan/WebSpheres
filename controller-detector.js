@@ -39,17 +39,10 @@ AFRAME.registerComponent('controller-detector', {
         }
         
         if (this.currentState === 'visible') {
-            let controllerInside = false;
-            [leftController, rightController].forEach(controller => {
-                if (controller) {
-                    const controllerPos = controller.getAttribute('position');
-                    if (this.isInsideSphere(controllerPos, spherePos)) {
-                        controllerInside = true;
-                    }
-                }
-            });
+            let leftHit = leftController && this.isInsideSphere(leftController.getAttribute('position'), spherePos);
+            let rightHit = rightController && this.isInsideSphere(rightController.getAttribute('position'), spherePos);
             
-            if (controllerInside && !this.disappearTimer) {
+            if ((leftHit || rightHit) && !this.disappearTimer) {
                 sphere.setAttribute('color', '#0000ff');
                 this.startDisappearTimer();
                 this.currentState = 'waiting-to-disappear';
