@@ -4,8 +4,18 @@ AFRAME.registerComponent('score-manager', {
         this.progressDisplay = document.querySelector('#progress-display');
     },
     
-    addPoint: function() {
-        this.score++;
+    calculateHitPoints: function() {
+        const random = Math.random();
+        
+        if (random < 0.8) {
+            return Math.floor(Math.random() * 5) + 1;
+        } else {
+            return Math.floor(Math.random() * 6) + 5;
+        }
+    },
+    
+    addPoints: function(amount) {
+        this.score += amount;
         this.updateDisplay();
     },
     
