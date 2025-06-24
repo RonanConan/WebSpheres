@@ -9,8 +9,8 @@ AFRAME.registerComponent('sphere-manager', {
     },
     
     createSpheres: function() {
-        const radius = 2;
-        const height = 1.5;
+        const radius = 0.7;
+        const height = 1.2;
         
         for (let i = 0; i < 11; i++) {
             let angle = -90 + (i * 18);
@@ -20,7 +20,7 @@ AFRAME.registerComponent('sphere-manager', {
             let sphere = document.createElement('a-sphere');
             sphere.setAttribute('position', `${x} ${height} ${z}`);
             sphere.setAttribute('color', '#ff0000');
-            sphere.setAttribute('radius', '0.2');
+            sphere.setAttribute('radius', '0.025');
             sphere.setAttribute('visible', 'false');
             sphere.setAttribute('id', `sphere-${i}`);
             
@@ -101,7 +101,7 @@ AFRAME.registerComponent('sphere-manager', {
     },
     
     isInsideSphere: function(controllerPos, spherePos) {
-        const size = 0.2;
+        const size = 0.05;
         return Math.abs(controllerPos.x - spherePos.x) < size &&
                Math.abs(controllerPos.y - spherePos.y) < size &&
                Math.abs(controllerPos.z - spherePos.z) < size;
