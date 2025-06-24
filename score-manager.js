@@ -6,10 +6,13 @@ AFRAME.registerComponent('score-manager', {
     
     calculateHitPoints: function() {
         const random = Math.random();
+        const audioManager = document.querySelector('#audio-manager').components['audio-manager'];
         
         if (random < 0.8) {
+            audioManager.playHitSound('normal');
             return Math.floor(Math.random() * 5) + 1;
         } else {
+            audioManager.playHitSound('critical');
             return Math.floor(Math.random() * 6) + 5;
         }
     },
