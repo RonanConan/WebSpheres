@@ -5,6 +5,8 @@ AFRAME.registerComponent('sphere-manager', {
         this.allSpheres = [];
         this.appearTimer = null;
         this.disappearTimer = null;
+        this.appearanceCounts = [0,0,0,0,0,0,0,0,0,0,0];
+        this.totalAppearances = 0;
         this.createSpheres();
     },
     
@@ -42,8 +44,10 @@ AFRAME.registerComponent('sphere-manager', {
                 if (this.isInsideRectangle(leftPos, rectanglePos) && this.isInsideRectangle(rightPos, rectanglePos)) {
                     if (!this.appearTimer) {
                         this.selectRandomSphere();
-                        this.startAppearTimer();
-                        this.currentState = 'waiting-to-appear';
+                        if (this.activeSphere) {
+                            this.startAppearTimer();
+                            this.currentState = 'waiting-to-appear';
+                        }
                     }
                 }
             }
@@ -78,14 +82,31 @@ AFRAME.registerComponent('sphere-manager', {
     },
     
     selectRandomSphere: function() {
-        const randomIndex = Math.floor(Math.random() * 11);
-        this.activeSphere = this.allSpheres[randomIndex];
+        let availablePositions = [];
+        for (let i = 0; i < 11; i++) {
+            if (this.appearanceCounts[i] < 10) {
+                availablePositions.push(i);
+            }
+        }
+        
+        if (availablePositions.length === 0) {
+            return;
+        }
+        
+        const randomIndex = Math.floor(Math.random() * availablePositions.length);
+        const selectedPosition = availablePositions[randomIndex];
+        this.activeSphere = this.allSpheres[selectedPosition];
     },
     
     startAppearTimer: function() {
         this.appearTimer = setTimeout(() => {
             this.activeSphere.setAttribute('visible', true);
             this.activeSphere.setAttribute('color', '#ff0000');
+            
+            const sphereIndex = this.allSpheres.indexOf(this.activeSphere);
+            this.appearanceCounts[sphereIndex]++;
+            this.totalAppearances++;
+            
             this.currentState = 'visible';
             this.appearTimer = null;
         }, 500);
@@ -101,7 +122,7 @@ AFRAME.registerComponent('sphere-manager', {
     },
     
     isInsideSphere: function(controllerPos, spherePos) {
-        const size = 0.025;
+        const size = 0.05;
         return Math.abs(controllerPos.x - spherePos.x) < size &&
                Math.abs(controllerPos.y - spherePos.y) < size &&
                Math.abs(controllerPos.z - spherePos.z) < size;
