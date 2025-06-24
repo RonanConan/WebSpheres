@@ -15,7 +15,7 @@ AFRAME.registerComponent('sphere-manager', {
         const height = 1.2;
         
         for (let i = 0; i < 11; i++) {
-            let angle = -50 + (i * 10);
+            let angle = -20 + (i * 4);
             let x = radius * Math.sin(angle * Math.PI / 180);
             let z = -radius * Math.cos(angle * Math.PI / 180);
             
