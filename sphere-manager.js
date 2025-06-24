@@ -8,7 +8,7 @@ AFRAME.registerComponent('sphere-manager', {
         this.appearanceCounts = [0,0,0,0,0,0,0,0,0,0,0];
         this.totalAppearances = 0;
         this.createSpheres();
-        this.createFloatingScore();
+        // this.createFloatingScore(); //
     },
     
     createSpheres: function() {
