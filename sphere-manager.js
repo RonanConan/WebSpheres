@@ -107,6 +107,9 @@ AFRAME.registerComponent('sphere-manager', {
             this.appearanceCounts[sphereIndex]++;
             this.totalAppearances++;
             
+            const scoreManager = document.querySelector('#score-display').components['score-manager'];
+            scoreManager.updateProgress(this.totalAppearances, 110);
+            
             this.currentState = 'visible';
             this.appearTimer = null;
         }, 500);
