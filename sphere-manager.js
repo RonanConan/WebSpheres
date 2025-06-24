@@ -101,7 +101,7 @@ AFRAME.registerComponent('sphere-manager', {
     },
     
     isInsideSphere: function(controllerPos, spherePos) {
-        const size = 0.05;
+        const size = 0.025;
         return Math.abs(controllerPos.x - spherePos.x) < size &&
                Math.abs(controllerPos.y - spherePos.y) < size &&
                Math.abs(controllerPos.z - spherePos.z) < size;
