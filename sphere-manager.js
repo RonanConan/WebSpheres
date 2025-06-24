@@ -8,6 +8,7 @@ AFRAME.registerComponent('sphere-manager', {
         this.appearanceCounts = [0,0,0,0,0,0,0,0,0,0,0];
         this.totalAppearances = 0;
         this.createSpheres();
+        this.createFloatingScore();
     },
     
     createSpheres: function() {
@@ -23,6 +24,50 @@ AFRAME.registerComponent('sphere-manager', {
             sphere.setAttribute('position', `${x} ${height} ${z}`);
             sphere.setAttribute('color', '#ff0000');
             sphere.setAttribute('radius', '0.025');
+            sphere.setAttribute('visible', 'false');
+            sphere.setAttribute('id', `sphere-${i}`);
+            
+            this.el.sceneEl.appendChild(sphere);
+            this.allSpheres.push(sphere);
+        }
+    },
+    
+    createFloatingScore: function() {
+        this.floatingScore = document.createElement('a-text');
+        this.floatingScore.setAttribute('value', '+1');
+        this.floatingScore.setAttribute('color', '#ffff00');
+        this.floatingScore.setAttribute('align', 'center');
+        this.floatingScore.setAttribute('visible', 'false');
+        this.floatingScore.setAttribute('scale', '0.3 0.3 0.3');
+        this.el.sceneEl.appendChild(this.floatingScore);
+    },
+    
+    showFloatingScore: function(spherePosition) {
+        const floatingPos = {
+            x: spherePosition.x,
+            y: spherePosition.y + 0.08,
+            z: spherePosition.z
+        };
+        
+        this.floatingScore.setAttribute('position', `${floatingPos.x} ${floatingPos.y} ${floatingPos.z}`);
+        this.floatingScore.setAttribute('visible', 'true');
+        
+        setTimeout(() => {
+            this.floatingScore.setAttribute('visible', 'false');
+        }, 300);
+    },
+        const radius = 2;
+        const height = 1.5;
+        
+        for (let i = 0; i < 11; i++) {
+            let angle = -90 + (i * 18);
+            let x = radius * Math.sin(angle * Math.PI / 180);
+            let z = -radius * Math.cos(angle * Math.PI / 180);
+            
+            let sphere = document.createElement('a-sphere');
+            sphere.setAttribute('position', `${x} ${height} ${z}`);
+            sphere.setAttribute('color', '#ff0000');
+            sphere.setAttribute('radius', '0.2');
             sphere.setAttribute('visible', 'false');
             sphere.setAttribute('id', `sphere-${i}`);
             
@@ -73,6 +118,7 @@ AFRAME.registerComponent('sphere-manager', {
             
             if ((leftHit || rightHit) && !this.disappearTimer) {
                 this.activeSphere.setAttribute('color', '#0000ff');
+                this.showFloatingScore(this.activeSphere.getAttribute('position'));
                 const scoreManager = document.querySelector('#score-display').components['score-manager'];
                 scoreManager.addPoint();
                 this.startDisappearTimer();
