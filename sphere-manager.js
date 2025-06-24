@@ -74,7 +74,8 @@ AFRAME.registerComponent('sphere-manager', {
             if ((leftHit || rightHit) && !this.disappearTimer) {
                 this.activeSphere.setAttribute('color', '#0000ff');
                 const scoreManager = document.querySelector('#score-display').components['score-manager'];
-                scoreManager.addPoint();
+                const points = scoreManager.calculateHitPoints();
+                scoreManager.addPoints(points);
                 this.startDisappearTimer();
                 this.currentState = 'waiting-to-disappear';
             }
