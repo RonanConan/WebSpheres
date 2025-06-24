@@ -8,7 +8,6 @@ AFRAME.registerComponent('sphere-manager', {
         this.appearanceCounts = [0,0,0,0,0,0,0,0,0,0,0];
         this.totalAppearances = 0;
         this.createSpheres();
-        // this.createFloatingScore(); //
     },
     
     createSpheres: function() {
@@ -118,7 +117,6 @@ AFRAME.registerComponent('sphere-manager', {
             
             if ((leftHit || rightHit) && !this.disappearTimer) {
                 this.activeSphere.setAttribute('color', '#0000ff');
-                this.showFloatingScore(this.activeSphere.getAttribute('position'));
                 const scoreManager = document.querySelector('#score-display').components['score-manager'];
                 scoreManager.addPoint();
                 this.startDisappearTimer();
