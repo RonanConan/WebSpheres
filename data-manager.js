@@ -2,6 +2,8 @@ AFRAME.registerComponent('data-manager', {
     init: function() {
         this.trialData = [];
         this.trialNumber = 0;
+        this.sphereAppearTime = 0;
+        this.currentDecisionTime = 0;
         this.setupManualExport();
     },
     
@@ -49,17 +51,33 @@ AFRAME.registerComponent('data-manager', {
         }
     },
     
-    recordTrial: function(targetPosition, handUsed, points, hitType) {
+    startDecisionTimer: function() {
+        this.sphereAppearTime = Date.now();
+        this.currentDecisionTime = 0;
+    },
+    
+    stopDecisionTimer: function() {
+        if (this.sphereAppearTime > 0) {
+            this.currentDecisionTime = Date.now() - this.sphereAppearTime;
+        }
+    },
+    
+    recordTrial: function(targetPosition, handUsed, points, hitType, decisionTime) {
         this.trialNumber++;
         this.trialData.push({
             trial: this.trialNumber,
             target: targetPosition + 1, // Convert 0-10 to 1-11
             hand: handUsed,
             points: points,
-            hitType: hitType
+            hitType: hitType,
+            decisionTime: decisionTime
         });
         
-        console.log(`Trial ${this.trialNumber}: Target ${targetPosition + 1}, Hand ${handUsed}, Points ${points}, Type ${hitType}`);
+        console.log(`Trial ${this.trialNumber}: Target ${targetPosition + 1}, Hand ${handUsed}, Points ${points}, Type ${hitType}, Decision Time ${decisionTime}ms`);
+        
+        // Reset timer for next trial
+        this.sphereAppearTime = 0;
+        this.currentDecisionTime = 0;
         
         // Check if session complete (110 trials)
         if (this.trialNumber >= 110) {
@@ -76,10 +94,10 @@ AFRAME.registerComponent('data-manager', {
         }
         
         // Generate CSV content
-        let csvContent = 'Trial,Target,Hand,Points,HitType\n';
+        let csvContent = 'Trial,Target,Hand,Points,HitType,DecisionTime\n';
         
         this.trialData.forEach(trial => {
-            csvContent += `${trial.trial},${trial.target},${trial.hand},${trial.points},${trial.hitType}\n`;
+            csvContent += `${trial.trial},${trial.target},${trial.hand},${trial.points},${trial.hitType},${trial.decisionTime}\n`;
         });
         
         // Create and download CSV file
