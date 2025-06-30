@@ -10,10 +10,16 @@ AFRAME.registerComponent('score-manager', {
         
         if (random < 0.8) {
             audioManager.playHitSound('normal');
-            return Math.floor(Math.random() * 5) + 1;
+            return {
+                points: Math.floor(Math.random() * 5) + 1,
+                hitType: 'normal'
+            };
         } else {
             audioManager.playHitSound('critical');
-            return Math.floor(Math.random() * 6) + 5;
+            return {
+                points: Math.floor(Math.random() * 6) + 5,
+                hitType: 'critical'
+            };
         }
     },
     
