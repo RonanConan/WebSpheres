@@ -15,7 +15,7 @@ AFRAME.registerComponent('sphere-manager', {
         const height = 1.2;
         
         for (let i = 0; i < 11; i++) {
-            let angle = -40 + (i * 8);
+            let angle = -90 + (i * 18);
             let x = radius * Math.sin(angle * Math.PI / 180);
             let z = -radius * Math.cos(angle * Math.PI / 180);
             
@@ -73,9 +73,20 @@ AFRAME.registerComponent('sphere-manager', {
             
             if ((leftHit || rightHit) && !this.disappearTimer) {
                 this.activeSphere.setAttribute('color', '#0000ff');
+                
+                // Determine which hand hit
+                const handUsed = leftHit ? 'LEFT' : 'RIGHT';
+                
+                // Get hit result (points and type)
                 const scoreManager = document.querySelector('#score-display').components['score-manager'];
-                const points = scoreManager.calculateHitPoints();
-                scoreManager.addPoints(points);
+                const hitResult = scoreManager.calculateHitPoints();
+                scoreManager.addPoints(hitResult.points);
+                
+                // Record trial data
+                const sphereIndex = this.allSpheres.indexOf(this.activeSphere);
+                const dataManager = document.querySelector('#data-manager').components['data-manager'];
+                dataManager.recordTrial(sphereIndex, handUsed, hitResult.points, hitResult.hitType);
+                
                 this.startDisappearTimer();
                 this.currentState = 'waiting-to-disappear';
             }
