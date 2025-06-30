@@ -7,6 +7,7 @@ AFRAME.registerComponent('sphere-manager', {
         this.disappearTimer = null;
         this.appearanceCounts = [0,0,0,0,0,0,0,0,0,0,0];
         this.totalAppearances = 0;
+        this.decisionTimeRecorded = false;
         this.createSpheres();
     },
     
@@ -71,6 +72,20 @@ AFRAME.registerComponent('sphere-manager', {
             let leftHit = leftController && this.isInsideSphere(leftController.getAttribute('position'), spherePos);
             let rightHit = rightController && this.isInsideSphere(rightController.getAttribute('position'), spherePos);
             
+            // Check if hands left rectangle (for decision time)
+            if (!this.decisionTimeRecorded && leftController && rightController) {
+                const leftPos = leftController.getAttribute('position');
+                const rightPos = rightController.getAttribute('position');
+                const leftInRect = this.isInsideRectangle(leftPos, rectanglePos);
+                const rightInRect = this.isInsideRectangle(rightPos, rectanglePos);
+                
+                if (!leftInRect || !rightInRect) {
+                    const dataManager = document.querySelector('#data-manager').components['data-manager'];
+                    dataManager.stopDecisionTimer();
+                    this.decisionTimeRecorded = true;
+                }
+            }
+            
             if ((leftHit || rightHit) && !this.disappearTimer) {
                 this.activeSphere.setAttribute('color', '#0000ff');
                 
@@ -82,10 +97,10 @@ AFRAME.registerComponent('sphere-manager', {
                 const hitResult = scoreManager.calculateHitPoints();
                 scoreManager.addPoints(hitResult.points);
                 
-                // Record trial data
+                // Record trial data with decision time
                 const sphereIndex = this.allSpheres.indexOf(this.activeSphere);
                 const dataManager = document.querySelector('#data-manager').components['data-manager'];
-                dataManager.recordTrial(sphereIndex, handUsed, hitResult.points, hitResult.hitType);
+                dataManager.recordTrial(sphereIndex, handUsed, hitResult.points, hitResult.hitType, dataManager.currentDecisionTime);
                 
                 this.startDisappearTimer();
                 this.currentState = 'waiting-to-disappear';
@@ -122,6 +137,11 @@ AFRAME.registerComponent('sphere-manager', {
             const scoreManager = document.querySelector('#score-display').components['score-manager'];
             scoreManager.updateProgress(this.totalAppearances, 110);
             
+            // Start decision timer when sphere appears
+            const dataManager = document.querySelector('#data-manager').components['data-manager'];
+            dataManager.startDecisionTimer();
+            this.decisionTimeRecorded = false;
+            
             this.currentState = 'visible';
             this.appearTimer = null;
         }, 500);
@@ -131,6 +151,7 @@ AFRAME.registerComponent('sphere-manager', {
         this.disappearTimer = setTimeout(() => {
             this.activeSphere.setAttribute('visible', false);
             this.activeSphere = null;
+            this.decisionTimeRecorded = false;
             this.currentState = 'invisible';
             this.disappearTimer = null;
         }, 300);
