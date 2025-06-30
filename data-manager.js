@@ -69,10 +69,10 @@ AFRAME.registerComponent('data-manager', {
     },
     
     startPositionTracking: function() {
-        // Track at 60Hz (approximately every 16.67ms)
+        // Track at 120Hz (approximately every 8.33ms)
         this.positionInterval = setInterval(() => {
             this.recordPositions();
-        }, 16.67);
+        }, 8.33);
     },
     
     recordPositions: function() {
