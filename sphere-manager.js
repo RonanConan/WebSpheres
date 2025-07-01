@@ -167,11 +167,14 @@ AFRAME.registerComponent('sphere-manager', {
     },
     
     isInsideSphere: function(handPos, spherePos) {
-        // Much larger hit area to simulate whole hand/finger detection
-        const size = 0.12; // Increased from 0.05 to 0.12 (more than double)
-        return Math.abs(handPos.x - spherePos.x) < size &&
-               Math.abs(handPos.y - spherePos.y) < size &&
-               Math.abs(handPos.z - spherePos.z) < size;
+        // Spherical collision detection - 2x visual sphere size
+        const hitRadius = 0.05; // 2x the visual sphere radius (0.025)
+        const distance = Math.sqrt(
+            Math.pow(handPos.x - spherePos.x, 2) +
+            Math.pow(handPos.y - spherePos.y, 2) +
+            Math.pow(handPos.z - spherePos.z, 2)
+        );
+        return distance < hitRadius;
     },
     
     isInsideRectangle: function(handPos, rectanglePos) {
