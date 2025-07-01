@@ -37,8 +37,12 @@
             color="#00ff00">
         </a-box>
         
-        <a-entity meta-touch-controls="hand: left"></a-entity>
-        <a-entity meta-touch-controls="hand: right"></a-entity>
+        <!-- Hand tracking controls for participants -->
+        <a-entity hand-tracking-controls="hand: left"></a-entity>
+        <a-entity hand-tracking-controls="hand: right"></a-entity>
+        
+        <!-- Keep right controller for researcher data export (hidden) -->
+        <a-entity meta-touch-controls="hand: right" visible="false"></a-entity>
     </a-scene>
 </body>
 </html>
