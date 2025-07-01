@@ -35,14 +35,14 @@ AFRAME.registerComponent('sphere-manager', {
     tick: function() {
         const rectangle = document.querySelector('#rectangle');
         const rectanglePos = rectangle.getAttribute('position');
-        const leftController = document.querySelector('[meta-touch-controls="hand: left"]');
-        const rightController = document.querySelector('[meta-touch-controls="hand: right"]');
+        const leftController = document.querySelector('[hand-tracking-controls="hand: left"]');
+        const rightController = document.querySelector('[hand-tracking-controls="hand: right"]');
         
         if (this.currentState === 'invisible') {
             if (leftController && rightController) {
-                const leftPos = leftController.getAttribute('position');
-                const rightPos = rightController.getAttribute('position');
-                if (this.isInsideRectangle(leftPos, rectanglePos) && this.isInsideRectangle(rightPos, rectanglePos)) {
+                const leftPos = this.getHandPosition(leftController);
+                const rightPos = this.getHandPosition(rightController);
+                if (leftPos && rightPos && this.isInsideRectangle(leftPos, rectanglePos) && this.isInsideRectangle(rightPos, rectanglePos)) {
                     if (!this.appearTimer) {
                         this.selectRandomSphere();
                         if (this.activeSphere) {
@@ -56,9 +56,9 @@ AFRAME.registerComponent('sphere-manager', {
         
         if (this.currentState === 'waiting-to-appear') {
             if (leftController && rightController) {
-                const leftPos = leftController.getAttribute('position');
-                const rightPos = rightController.getAttribute('position');
-                if (!this.isInsideRectangle(leftPos, rectanglePos) || !this.isInsideRectangle(rightPos, rectanglePos)) {
+                const leftPos = this.getHandPosition(leftController);
+                const rightPos = this.getHandPosition(rightController);
+                if (!leftPos || !rightPos || !this.isInsideRectangle(leftPos, rectanglePos) || !this.isInsideRectangle(rightPos, rectanglePos)) {
                     clearTimeout(this.appearTimer);
                     this.appearTimer = null;
                     this.activeSphere = null;
@@ -69,13 +69,14 @@ AFRAME.registerComponent('sphere-manager', {
         
         if (this.currentState === 'visible' && this.activeSphere) {
             const spherePos = this.activeSphere.getAttribute('position');
-            let leftHit = leftController && this.isInsideSphere(leftController.getAttribute('position'), spherePos);
-            let rightHit = rightController && this.isInsideSphere(rightController.getAttribute('position'), spherePos);
+            const leftPos = this.getHandPosition(leftController);
+            const rightPos = this.getHandPosition(rightController);
+            
+            let leftHit = leftPos && this.isInsideSphere(leftPos, spherePos);
+            let rightHit = rightPos && this.isInsideSphere(rightPos, spherePos);
             
             // Check if hands left rectangle (for decision time)
-            if (!this.decisionTimeRecorded && leftController && rightController) {
-                const leftPos = leftController.getAttribute('position');
-                const rightPos = rightController.getAttribute('position');
+            if (!this.decisionTimeRecorded && leftPos && rightPos) {
                 const leftInRect = this.isInsideRectangle(leftPos, rectanglePos);
                 const rightInRect = this.isInsideRectangle(rightPos, rectanglePos);
                 
@@ -106,6 +107,14 @@ AFRAME.registerComponent('sphere-manager', {
                 this.currentState = 'waiting-to-disappear';
             }
         }
+    },
+    
+    // Simple helper to get hand position (only indexTipPosition exists)
+    getHandPosition: function(handController) {
+        if (!handController || !handController.components || !handController.components['hand-tracking-controls']) {
+            return null;
+        }
+        return handController.components['hand-tracking-controls'].indexTipPosition;
     },
     
     selectRandomSphere: function() {
@@ -157,19 +166,21 @@ AFRAME.registerComponent('sphere-manager', {
         }, 300);
     },
     
-    isInsideSphere: function(controllerPos, spherePos) {
-        const size = 0.05;
-        return Math.abs(controllerPos.x - spherePos.x) < size &&
-               Math.abs(controllerPos.y - spherePos.y) < size &&
-               Math.abs(controllerPos.z - spherePos.z) < size;
+    isInsideSphere: function(handPos, spherePos) {
+        // Much larger hit area to simulate whole hand/finger detection
+        const size = 0.12; // Increased from 0.05 to 0.12 (more than double)
+        return Math.abs(handPos.x - spherePos.x) < size &&
+               Math.abs(handPos.y - spherePos.y) < size &&
+               Math.abs(handPos.z - spherePos.z) < size;
     },
     
-    isInsideRectangle: function(controllerPos, rectanglePos) {
-        const width = 0.4;
-        const height = 0.15;
-        const depth = 0.3;
-        return Math.abs(controllerPos.x - rectanglePos.x) < width &&
-               Math.abs(controllerPos.y - rectanglePos.y) < height &&
-               Math.abs(controllerPos.z - rectanglePos.z) < depth;
+    isInsideRectangle: function(handPos, rectanglePos) {
+        // Slightly larger rectangle detection for hand tracking
+        const width = 0.45;  // Increased from 0.4
+        const height = 0.2;  // Increased from 0.15
+        const depth = 0.35;  // Increased from 0.3
+        return Math.abs(handPos.x - rectanglePos.x) < width &&
+               Math.abs(handPos.y - rectanglePos.y) < height &&
+               Math.abs(handPos.z - rectanglePos.z) < depth;
     }
 });
