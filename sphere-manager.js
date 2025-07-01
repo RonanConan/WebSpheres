@@ -40,9 +40,9 @@ AFRAME.registerComponent('sphere-manager', {
         
         if (this.currentState === 'invisible') {
             if (leftController && rightController) {
-                const leftInRect = this.isAnyFingertipInsideRectangle(leftController, rectanglePos);
-                const rightInRect = this.isAnyFingertipInsideRectangle(rightController, rectanglePos);
-                if (leftInRect && rightInRect) {
+                const leftPos = this.getHandPosition(leftController);
+                const rightPos = this.getHandPosition(rightController);
+                if (leftPos && rightPos && this.isInsideRectangle(leftPos, rectanglePos) && this.isInsideRectangle(rightPos, rectanglePos)) {
                     if (!this.appearTimer) {
                         this.selectRandomSphere();
                         if (this.activeSphere) {
@@ -56,9 +56,9 @@ AFRAME.registerComponent('sphere-manager', {
         
         if (this.currentState === 'waiting-to-appear') {
             if (leftController && rightController) {
-                const leftInRect = this.isAnyFingertipInsideRectangle(leftController, rectanglePos);
-                const rightInRect = this.isAnyFingertipInsideRectangle(rightController, rectanglePos);
-                if (!leftInRect || !rightInRect) {
+                const leftPos = this.getHandPosition(leftController);
+                const rightPos = this.getHandPosition(rightController);
+                if (!leftPos || !rightPos || !this.isInsideRectangle(leftPos, rectanglePos) || !this.isInsideRectangle(rightPos, rectanglePos)) {
                     clearTimeout(this.appearTimer);
                     this.appearTimer = null;
                     this.activeSphere = null;
@@ -69,13 +69,16 @@ AFRAME.registerComponent('sphere-manager', {
         
         if (this.currentState === 'visible' && this.activeSphere) {
             const spherePos = this.activeSphere.getAttribute('position');
-            let leftHit = this.isAnyFingertipInsideSphere(leftController, spherePos);
-            let rightHit = this.isAnyFingertipInsideSphere(rightController, spherePos);
+            const leftPos = this.getHandPosition(leftController);
+            const rightPos = this.getHandPosition(rightController);
+            
+            let leftHit = leftPos && this.isInsideSphere(leftPos, spherePos);
+            let rightHit = rightPos && this.isInsideSphere(rightPos, spherePos);
             
             // Check if hands left rectangle (for decision time)
-            if (!this.decisionTimeRecorded && leftController && rightController) {
-                const leftInRect = this.isAnyFingertipInsideRectangle(leftController, rectanglePos);
-                const rightInRect = this.isAnyFingertipInsideRectangle(rightController, rectanglePos);
+            if (!this.decisionTimeRecorded && leftPos && rightPos) {
+                const leftInRect = this.isInsideRectangle(leftPos, rectanglePos);
+                const rightInRect = this.isInsideRectangle(rightPos, rectanglePos);
                 
                 if (!leftInRect || !rightInRect) {
                     const dataManager = document.querySelector('#data-manager').components['data-manager'];
@@ -106,33 +109,12 @@ AFRAME.registerComponent('sphere-manager', {
         }
     },
     
-    // Simple helper to get all fingertip positions
-    getAllFingertipPositions: function(handController) {
-        if (!handController?.components?.['hand-tracking-controls']) return [];
-        
-        const handComponent = handController.components['hand-tracking-controls'];
-        const positions = [];
-        const fingerProps = ['thumbTipPosition', 'indexTipPosition', 'middleTipPosition', 'ringTipPosition', 'pinkyTipPosition'];
-        
-        fingerProps.forEach(prop => {
-            if (handComponent[prop]) {
-                positions.push(handComponent[prop]);
-            }
-        });
-        
-        return positions;
-    },
-    
-    // Check if any fingertip is inside rectangle
-    isAnyFingertipInsideRectangle: function(handController, rectanglePos) {
-        const fingertips = this.getAllFingertipPositions(handController);
-        return fingertips.some(pos => this.isInsideRectangle(pos, rectanglePos));
-    },
-    
-    // Check if any fingertip is inside sphere
-    isAnyFingertipInsideSphere: function(handController, spherePos) {
-        const fingertips = this.getAllFingertipPositions(handController);
-        return fingertips.some(pos => this.isInsideSphere(pos, spherePos));
+    // Simple helper to get hand position (indexTipPosition only)
+    getHandPosition: function(handController) {
+        if (!handController?.components?.['hand-tracking-controls']) {
+            return null;
+        }
+        return handController.components['hand-tracking-controls'].indexTipPosition;
     },
     
     selectRandomSphere: function() {
