@@ -8,6 +8,12 @@ AFRAME.registerComponent('sphere-manager', {
         this.appearanceCounts = [0,0,0,0,0,0,0,0,0,0,0];
         this.totalAppearances = 0;
         this.decisionTimeRecorded = false;
+        
+        // Cache DOM elements once for performance
+        this.rectangle = document.querySelector('#rectangle');
+        this.leftController = document.querySelector('[hand-tracking-controls="hand: left"]');
+        this.rightController = document.querySelector('[hand-tracking-controls="hand: right"]');
+        
         this.createSpheres();
     },
     
@@ -33,10 +39,9 @@ AFRAME.registerComponent('sphere-manager', {
     },
     
     tick: function() {
-        const rectangle = document.querySelector('#rectangle');
-        const rectanglePos = rectangle.getAttribute('position');
-        const leftController = document.querySelector('[hand-tracking-controls="hand: left"]');
-        const rightController = document.querySelector('[hand-tracking-controls="hand: right"]');
+        const rectanglePos = this.rectangle.getAttribute('position');
+        const leftController = this.leftController;
+        const rightController = this.rightController;
         
         if (this.currentState === 'invisible') {
             if (leftController && rightController) {
