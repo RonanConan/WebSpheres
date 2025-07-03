@@ -29,7 +29,7 @@ AFRAME.registerComponent('sphere-manager', {
             let sphere = document.createElement('a-sphere');
             sphere.setAttribute('position', `${x} ${height} ${z}`);
             sphere.setAttribute('color', '#ff0000');
-            sphere.setAttribute('radius', '0.025');
+            sphere.setAttribute('radius', '0.035');
             sphere.setAttribute('visible', 'false');
             sphere.setAttribute('id', `sphere-${i}`);
             
@@ -173,7 +173,7 @@ AFRAME.registerComponent('sphere-manager', {
     
     isInsideSphere: function(handPos, spherePos) {
         // Spherical collision detection - 2x visual sphere size
-        const hitRadius = 0.05; // 2x the visual sphere radius (0.025)
+        const hitRadius = 0.05;
         const distance = Math.sqrt(
             Math.pow(handPos.x - spherePos.x, 2) +
             Math.pow(handPos.y - spherePos.y, 2) +
