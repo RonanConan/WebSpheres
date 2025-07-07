@@ -29,7 +29,7 @@ AFRAME.registerComponent('sphere-manager', {
             let sphere = document.createElement('a-sphere');
             sphere.setAttribute('position', `${x} ${height} ${z}`);
             sphere.setAttribute('color', '#ff0000');
-            sphere.setAttribute('radius', '0.035');
+            sphere.setAttribute('radius', '0.05');
             sphere.setAttribute('visible', 'false');
             sphere.setAttribute('id', `sphere-${i}`);
             
