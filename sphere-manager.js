@@ -184,7 +184,7 @@ AFRAME.registerComponent('sphere-manager', {
     
     isInsideSphere: function(handPos, spherePos) {
         // Spherical collision detection - 2x visual sphere size
-        const hitRadius = 0.05;
+        const hitRadius = 0.08;
         const distance = Math.sqrt(
             Math.pow(handPos.x - spherePos.x, 2) +
             Math.pow(handPos.y - spherePos.y, 2) +
