@@ -8,6 +8,7 @@ AFRAME.registerComponent('sphere-manager', {
         this.appearanceCounts = [0,0,0,0,0,0,0,0,0,0,0];
         this.totalAppearances = 0;
         this.decisionTimeRecorded = false;
+        this.lastSelectedPosition = -1;
         
         // Cache DOM elements once for performance
         this.rectangle = document.querySelector('#rectangle');
@@ -125,8 +126,17 @@ AFRAME.registerComponent('sphere-manager', {
     selectRandomSphere: function() {
         let availablePositions = [];
         for (let i = 0; i < 11; i++) {
-            if (this.appearanceCounts[i] < 10) {
+            if (this.appearanceCounts[i] < 10 && i !== this.lastSelectedPosition) {
                 availablePositions.push(i);
+            }
+        }
+        
+        // Fallback: if no positions available, allow any position that hasn't reached limit
+        if (availablePositions.length === 0) {
+            for (let i = 0; i < 11; i++) {
+                if (this.appearanceCounts[i] < 10) {
+                    availablePositions.push(i);
+                }
             }
         }
         
@@ -137,6 +147,7 @@ AFRAME.registerComponent('sphere-manager', {
         const randomIndex = Math.floor(Math.random() * availablePositions.length);
         const selectedPosition = availablePositions[randomIndex];
         this.activeSphere = this.allSpheres[selectedPosition];
+        this.lastSelectedPosition = selectedPosition;
     },
     
     startAppearTimer: function() {
@@ -173,7 +184,7 @@ AFRAME.registerComponent('sphere-manager', {
     
     isInsideSphere: function(handPos, spherePos) {
         // Spherical collision detection - 2x visual sphere size
-        const hitRadius = 0.08;
+        const hitRadius = 0.05;
         const distance = Math.sqrt(
             Math.pow(handPos.x - spherePos.x, 2) +
             Math.pow(handPos.y - spherePos.y, 2) +
