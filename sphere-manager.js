@@ -9,6 +9,7 @@ AFRAME.registerComponent('sphere-manager', {
         this.totalAppearances = 0;
         this.decisionTimeRecorded = false;
         this.lastSelectedPosition = -1;
+        this.radius = 0.7; // Make radius a property
         
         // Cache DOM elements once for performance
         this.rectangle = document.querySelector('#rectangle');
@@ -16,16 +17,16 @@ AFRAME.registerComponent('sphere-manager', {
         this.rightController = document.querySelector('[hand-tracking-controls="hand: right"]');
         
         this.createSpheres();
+        this.setupCalibration();
     },
     
     createSpheres: function() {
-        const radius = 0.7;
         const height = 1.2;
         
         for (let i = 0; i < 11; i++) {
             let angle = -40 + (i * 8);
-            let x = radius * Math.sin(angle * Math.PI / 180);
-            let z = -radius * Math.cos(angle * Math.PI / 180);
+            let x = this.radius * Math.sin(angle * Math.PI / 180);
+            let z = -this.radius * Math.cos(angle * Math.PI / 180);
             
             let sphere = document.createElement('a-sphere');
             sphere.setAttribute('position', `${x} ${height} ${z}`);
@@ -36,6 +37,50 @@ AFRAME.registerComponent('sphere-manager', {
             
             this.el.sceneEl.appendChild(sphere);
             this.allSpheres.push(sphere);
+        }
+    },
+    
+    setupCalibration: function() {
+        document.addEventListener('keydown', (event) => {
+            if (event.code === 'Space') {
+                this.calibrateReach();
+            }
+        });
+    },
+    
+    calibrateReach: function() {
+        // Get camera position
+        const camera = document.querySelector('a-scene').camera;
+        const cameraPos = camera.el.getAttribute('position');
+        
+        // Get right hand position
+        const rightPos = this.getHandPosition(this.rightController);
+        
+        if (rightPos && cameraPos) {
+            // Calculate distance from camera to right hand
+            const distance = Math.sqrt(
+                Math.pow(rightPos.x - cameraPos.x, 2) +
+                Math.pow(rightPos.y - cameraPos.y, 2) +
+                Math.pow(rightPos.z - cameraPos.z, 2)
+            );
+            
+            // Set new radius to 80% of reach distance (minimum 0.3)
+            this.radius = Math.max(0.3, 0.8 * distance);
+            
+            // Update all sphere positions
+            this.updateSpherePositions();
+        }
+    },
+    
+    updateSpherePositions: function() {
+        const height = 1.2;
+        
+        for (let i = 0; i < 11; i++) {
+            let angle = -40 + (i * 8);
+            let x = this.radius * Math.sin(angle * Math.PI / 180);
+            let z = -this.radius * Math.cos(angle * Math.PI / 180);
+            
+            this.allSpheres[i].setAttribute('position', `${x} ${height} ${z}`);
         }
     },
     
