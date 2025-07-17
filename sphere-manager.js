@@ -10,6 +10,7 @@ AFRAME.registerComponent('sphere-manager', {
         this.decisionTimeRecorded = false;
         this.lastSelectedPosition = -1;
         this.radius = 0.7; // Make radius a property
+        this.height = 1.2; // Make height a property
         
         // Cache DOM elements once for performance
         this.rectangle = document.querySelector('#rectangle');
@@ -21,15 +22,13 @@ AFRAME.registerComponent('sphere-manager', {
     },
     
     createSpheres: function() {
-        const height = 1.2;
-        
         for (let i = 0; i < 11; i++) {
             let angle = -40 + (i * 8);
             let x = this.radius * Math.sin(angle * Math.PI / 180);
             let z = -this.radius * Math.cos(angle * Math.PI / 180);
             
             let sphere = document.createElement('a-sphere');
-            sphere.setAttribute('position', `${x} ${height} ${z}`);
+            sphere.setAttribute('position', `${x} ${this.height} ${z}`);
             sphere.setAttribute('color', '#ff0000');
             sphere.setAttribute('radius', '0.05');
             sphere.setAttribute('visible', 'false');
@@ -44,6 +43,9 @@ AFRAME.registerComponent('sphere-manager', {
         document.addEventListener('keydown', (event) => {
             if (event.code === 'Space') {
                 this.calibrateReach();
+            }
+            if (event.code === 'KeyH') {
+                this.calibrateHeight();
             }
         });
     },
@@ -72,15 +74,27 @@ AFRAME.registerComponent('sphere-manager', {
         }
     },
     
-    updateSpherePositions: function() {
-        const height = 1.2;
+    calibrateHeight: function() {
+        // Get camera position
+        const camera = document.querySelector('a-scene').camera;
+        const cameraPos = camera.el.getAttribute('position');
         
+        if (cameraPos && cameraPos.y !== undefined) {
+            // Set new height to 80% of camera Y position (minimum 0.5)
+            this.height = Math.max(0.5, 0.8 * cameraPos.y);
+            
+            // Update all sphere positions
+            this.updateSpherePositions();
+        }
+    },
+    
+    updateSpherePositions: function() {
         for (let i = 0; i < 11; i++) {
             let angle = -40 + (i * 8);
             let x = this.radius * Math.sin(angle * Math.PI / 180);
             let z = -this.radius * Math.cos(angle * Math.PI / 180);
             
-            this.allSpheres[i].setAttribute('position', `${x} ${height} ${z}`);
+            this.allSpheres[i].setAttribute('position', `${x} ${this.height} ${z}`);
         }
     },
     
