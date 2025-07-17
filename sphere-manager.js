@@ -16,9 +16,12 @@ AFRAME.registerComponent('sphere-manager', {
         this.rectangle = document.querySelector('#rectangle');
         this.leftController = document.querySelector('[hand-tracking-controls="hand: left"]');
         this.rightController = document.querySelector('[hand-tracking-controls="hand: right"]');
+        this.scoreDisplay = document.querySelector('#score-display');
+        this.progressDisplay = document.querySelector('#progress-display');
         
         this.createSpheres();
         this.setupCalibration();
+        this.updateTextPositions();
     },
     
     createSpheres: function() {
@@ -91,6 +94,9 @@ AFRAME.registerComponent('sphere-manager', {
             
             // Update all sphere positions
             this.updateSpherePositions();
+            
+            // Update text positions
+            this.updateTextPositions();
         }
     },
     
@@ -110,6 +116,16 @@ AFRAME.registerComponent('sphere-manager', {
     saveData: function() {
         const dataManager = document.querySelector('#data-manager').components['data-manager'];
         dataManager.exportCSV();
+    },
+    
+    updateTextPositions: function() {
+        if (this.scoreDisplay && this.progressDisplay) {
+            // Position score at sphere height + 0.2
+            this.scoreDisplay.setAttribute('position', `0 ${this.height + 0.2} -1.2`);
+            
+            // Position progress at sphere height + 0.1
+            this.progressDisplay.setAttribute('position', `0 ${this.height + 0.1} -1.2`);
+        }
     },
     
     updateSpherePositions: function() {
