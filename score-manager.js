@@ -34,7 +34,7 @@ AFRAME.registerComponent('score-manager', {
     },
     
     updateDisplay: function() {
-        this.el.setAttribute('value', `Score: ${this.score}`);
+        this.el.setAttribute('value', `${this.score}`);
     },
     
     getScore: function() {
