@@ -47,6 +47,9 @@ AFRAME.registerComponent('sphere-manager', {
             if (event.code === 'KeyH') {
                 this.calibrateHeight();
             }
+            if (event.code === 'KeyL') {
+                this.calibrateLap();
+            }
         });
     },
     
@@ -85,6 +88,19 @@ AFRAME.registerComponent('sphere-manager', {
             
             // Update all sphere positions
             this.updateSpherePositions();
+        }
+    },
+    
+    calibrateLap: function() {
+        // Get right hand position
+        const rightPos = this.getHandPosition(this.rightController);
+        
+        if (rightPos && rightPos.y !== undefined) {
+            // Get current rectangle position
+            const currentPos = this.rectangle.getAttribute('position');
+            
+            // Update rectangle Y position to match right hand Y position
+            this.rectangle.setAttribute('position', `${currentPos.x} ${rightPos.y} ${currentPos.z}`);
         }
     },
     
