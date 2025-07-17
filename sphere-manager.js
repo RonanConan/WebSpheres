@@ -50,6 +50,9 @@ AFRAME.registerComponent('sphere-manager', {
             if (event.code === 'KeyL') {
                 this.calibrateLap();
             }
+            if (event.code === 'KeyS') {
+                this.saveData();
+            }
         });
     },
     
@@ -102,6 +105,11 @@ AFRAME.registerComponent('sphere-manager', {
             // Update rectangle Y position to match right hand Y position
             this.rectangle.setAttribute('position', `${currentPos.x} ${rightPos.y} ${currentPos.z}`);
         }
+    },
+    
+    saveData: function() {
+        const dataManager = document.querySelector('#data-manager').components['data-manager'];
+        dataManager.exportCSV();
     },
     
     updateSpherePositions: function() {
