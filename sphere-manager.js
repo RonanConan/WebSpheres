@@ -21,7 +21,7 @@ AFRAME.registerComponent('sphere-manager', {
         
         this.createSpheres();
         this.setupCalibration();
-        this.updateTextPositions();
+        //this.updateTextPositions();
     },
     
     createSpheres: function() {
