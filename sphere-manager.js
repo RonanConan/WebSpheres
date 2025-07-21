@@ -9,10 +9,9 @@ AFRAME.registerComponent('sphere-manager', {
         this.totalAppearances = 0;
         this.decisionTimeRecorded = false;
         this.lastSelectedPosition = -1;
-        this.radius = 0.7; // Make radius a property
-        this.height = 1.2; // Make height a property
+        this.radius = 0.7; 
+        this.height = 1.2; 
         
-        // Cache DOM elements once for performance
         this.rectangle = document.querySelector('#rectangle');
         this.leftController = document.querySelector('[hand-tracking-controls="hand: left"]');
         this.rightController = document.querySelector('[hand-tracking-controls="hand: right"]');
@@ -21,7 +20,7 @@ AFRAME.registerComponent('sphere-manager', {
         
         this.createSpheres();
         this.setupCalibration();
-        //this.updateTextPositions();
+        this.updateTextPositions();
     },
     
     createSpheres: function() {
@@ -60,55 +59,43 @@ AFRAME.registerComponent('sphere-manager', {
     },
     
     calibrateReach: function() {
-        // Get camera position
         const camera = document.querySelector('a-scene').camera;
         const cameraPos = camera.el.getAttribute('position');
         
-        // Get right hand position
         const rightPos = this.getHandPosition(this.rightController);
         
         if (rightPos && cameraPos) {
-            // Calculate distance from camera to right hand
             const distance = Math.sqrt(
                 Math.pow(rightPos.x - cameraPos.x, 2) +
                 Math.pow(rightPos.y - cameraPos.y, 2) +
                 Math.pow(rightPos.z - cameraPos.z, 2)
             );
             
-            // Set new radius to 80% of reach distance (minimum 0.3)
             this.radius = Math.max(0.3, 0.8 * distance);
             
-            // Update all sphere positions
             this.updateSpherePositions();
         }
     },
     
     calibrateHeight: function() {
-        // Get camera position
         const camera = document.querySelector('a-scene').camera;
         const cameraPos = camera.el.getAttribute('position');
         
         if (cameraPos && cameraPos.y !== undefined) {
-            // Set new height to 80% of camera Y position (minimum 0.5)
             this.height = Math.max(0.5, 0.8 * cameraPos.y);
             
-            // Update all sphere positions
             this.updateSpherePositions();
             
-            // Update text positions
             this.updateTextPositions();
         }
     },
     
     calibrateLap: function() {
-        // Get right hand position
         const rightPos = this.getHandPosition(this.rightController);
         
         if (rightPos && rightPos.y !== undefined) {
-            // Get current rectangle position
             const currentPos = this.rectangle.getAttribute('position');
             
-            // Update rectangle Y position to match right hand Y position
             this.rectangle.setAttribute('position', `${currentPos.x} ${rightPos.y} ${currentPos.z}`);
         }
     },
@@ -120,10 +107,8 @@ AFRAME.registerComponent('sphere-manager', {
     
     updateTextPositions: function() {
         if (this.scoreDisplay && this.progressDisplay) {
-            // Position score at sphere height + 0.2
             this.scoreDisplay.setAttribute('position', `0 ${this.height + 0.2} -1.2`);
             
-            // Position progress at sphere height + 0.1
             this.progressDisplay.setAttribute('position', `0 ${this.height + 0.1} -1.2`);
         }
     },
@@ -180,7 +165,6 @@ AFRAME.registerComponent('sphere-manager', {
             let leftHit = leftPos && this.isInsideSphere(leftPos, spherePos);
             let rightHit = rightPos && this.isInsideSphere(rightPos, spherePos);
             
-            // Check if hands left rectangle (for decision time)
             if (!this.decisionTimeRecorded && leftPos && rightPos) {
                 const leftInRect = this.isInsideRectangle(leftPos, rectanglePos);
                 const rightInRect = this.isInsideRectangle(rightPos, rectanglePos);
@@ -195,15 +179,12 @@ AFRAME.registerComponent('sphere-manager', {
             if ((leftHit || rightHit) && !this.disappearTimer) {
                 this.activeSphere.setAttribute('color', '#0000ff');
                 
-                // Determine which hand hit
                 const handUsed = leftHit ? 'LEFT' : 'RIGHT';
                 
-                // Get hit result (points and type)
                 const scoreManager = document.querySelector('#score-display').components['score-manager'];
                 const hitResult = scoreManager.calculateHitPoints();
                 scoreManager.addPoints(hitResult.points);
                 
-                // Record trial data with decision time
                 const sphereIndex = this.allSpheres.indexOf(this.activeSphere);
                 const dataManager = document.querySelector('#data-manager').components['data-manager'];
                 dataManager.recordTrial(sphereIndex, handUsed, hitResult.points, hitResult.hitType, dataManager.currentDecisionTime);
@@ -214,7 +195,6 @@ AFRAME.registerComponent('sphere-manager', {
         }
     },
     
-    // Simple helper to get hand position (indexTipPosition only)
     getHandPosition: function(handController) {
         if (!handController?.components?.['hand-tracking-controls']) {
             return null;
@@ -230,7 +210,6 @@ AFRAME.registerComponent('sphere-manager', {
             }
         }
         
-        // Fallback: if no positions available, allow any position that hasn't reached limit
         if (availablePositions.length === 0) {
             for (let i = 0; i < 11; i++) {
                 if (this.appearanceCounts[i] < 10) {
@@ -261,7 +240,6 @@ AFRAME.registerComponent('sphere-manager', {
             const scoreManager = document.querySelector('#score-display').components['score-manager'];
             scoreManager.updateProgress(this.totalAppearances, 110);
             
-            // Start decision timer when sphere appears
             const dataManager = document.querySelector('#data-manager').components['data-manager'];
             dataManager.startDecisionTimer();
             this.decisionTimeRecorded = false;
@@ -282,7 +260,6 @@ AFRAME.registerComponent('sphere-manager', {
     },
     
     isInsideSphere: function(handPos, spherePos) {
-        // Spherical collision detection - 2x visual sphere size
         const hitRadius = 0.08;
         const distance = Math.sqrt(
             Math.pow(handPos.x - spherePos.x, 2) +
@@ -293,10 +270,9 @@ AFRAME.registerComponent('sphere-manager', {
     },
     
     isInsideRectangle: function(handPos, rectanglePos) {
-        // Slightly larger rectangle detection for hand tracking
-        const width = 0.45;  // Increased from 0.4
-        const height = 0.2;  // Increased from 0.15
-        const depth = 0.35;  // Increased from 0.3
+        const width = 0.45;  
+        const height = 0.2;  
+        const depth = 0.35;  
         return Math.abs(handPos.x - rectanglePos.x) < width &&
                Math.abs(handPos.y - rectanglePos.y) < height &&
                Math.abs(handPos.z - rectanglePos.z) < depth;
