@@ -11,6 +11,7 @@ AFRAME.registerComponent('sphere-manager', {
         this.lastSelectedPosition = -1;
         this.radius = 0.7;
         this.height = 1.2;
+        this.isPaused = true;
         
         this.rectangle = document.querySelector('#rectangle');
         this.leftController = document.querySelector('[hand-tracking-controls="hand: left"]');
@@ -54,6 +55,9 @@ AFRAME.registerComponent('sphere-manager', {
             }
             if (event.code === 'KeyS') {
                 this.saveData();
+            }
+            if (event.code === 'KeyP') {
+                this.resumeGame();
             }
         });
     },
@@ -123,74 +127,80 @@ AFRAME.registerComponent('sphere-manager', {
         }
     },
     
+    resumeGame: function() {
+        this.isPaused = false;
+    },
+    
     tick: function() {
-        const rectanglePos = this.rectangle.getAttribute('position');
-        const leftController = this.leftController;
-        const rightController = this.rightController;
-        
-        if (this.currentState === 'invisible') {
-            if (leftController && rightController) {
-                const leftPos = this.getHandPosition(leftController);
-                const rightPos = this.getHandPosition(rightController);
-                if (leftPos && rightPos && this.isInsideRectangle(leftPos, rectanglePos) && this.isInsideRectangle(rightPos, rectanglePos)) {
-                    if (!this.appearTimer) {
-                        this.selectRandomSphere();
-                        if (this.activeSphere) {
-                            this.startAppearTimer();
-                            this.currentState = 'waiting-to-appear';
+        if (!this.isPaused) {
+            const rectanglePos = this.rectangle.getAttribute('position');
+            const leftController = this.leftController;
+            const rightController = this.rightController;
+            
+            if (this.currentState === 'invisible') {
+                if (leftController && rightController) {
+                    const leftPos = this.getHandPosition(leftController);
+                    const rightPos = this.getHandPosition(rightController);
+                    if (leftPos && rightPos && this.isInsideRectangle(leftPos, rectanglePos) && this.isInsideRectangle(rightPos, rectanglePos)) {
+                        if (!this.appearTimer) {
+                            this.selectRandomSphere();
+                            if (this.activeSphere) {
+                                this.startAppearTimer();
+                                this.currentState = 'waiting-to-appear';
+                            }
                         }
                     }
                 }
             }
-        }
-        
-        if (this.currentState === 'waiting-to-appear') {
-            if (leftController && rightController) {
+            
+            if (this.currentState === 'waiting-to-appear') {
+                if (leftController && rightController) {
+                    const leftPos = this.getHandPosition(leftController);
+                    const rightPos = this.getHandPosition(rightController);
+                    if (!leftPos || !rightPos || !this.isInsideRectangle(leftPos, rectanglePos) || !this.isInsideRectangle(rightPos, rectanglePos)) {
+                        clearTimeout(this.appearTimer);
+                        this.appearTimer = null;
+                        this.activeSphere = null;
+                        this.currentState = 'invisible';
+                    }
+                }
+            }
+            
+            if (this.currentState === 'visible' && this.activeSphere) {
+                const spherePos = this.activeSphere.getAttribute('position');
                 const leftPos = this.getHandPosition(leftController);
                 const rightPos = this.getHandPosition(rightController);
-                if (!leftPos || !rightPos || !this.isInsideRectangle(leftPos, rectanglePos) || !this.isInsideRectangle(rightPos, rectanglePos)) {
-                    clearTimeout(this.appearTimer);
-                    this.appearTimer = null;
-                    this.activeSphere = null;
-                    this.currentState = 'invisible';
-                }
-            }
-        }
-        
-        if (this.currentState === 'visible' && this.activeSphere) {
-            const spherePos = this.activeSphere.getAttribute('position');
-            const leftPos = this.getHandPosition(leftController);
-            const rightPos = this.getHandPosition(rightController);
-            
-            let leftHit = leftPos && this.isInsideSphere(leftPos, spherePos);
-            let rightHit = rightPos && this.isInsideSphere(rightPos, spherePos);
-            
-            if (!this.decisionTimeRecorded && leftPos && rightPos) {
-                const leftInRect = this.isInsideRectangle(leftPos, rectanglePos);
-                const rightInRect = this.isInsideRectangle(rightPos, rectanglePos);
                 
-                if (!leftInRect || !rightInRect) {
+                let leftHit = leftPos && this.isInsideSphere(leftPos, spherePos);
+                let rightHit = rightPos && this.isInsideSphere(rightPos, spherePos);
+                
+                if (!this.decisionTimeRecorded && leftPos && rightPos) {
+                    const leftInRect = this.isInsideRectangle(leftPos, rectanglePos);
+                    const rightInRect = this.isInsideRectangle(rightPos, rectanglePos);
+                    
+                    if (!leftInRect || !rightInRect) {
+                        const dataManager = document.querySelector('#data-manager').components['data-manager'];
+                        dataManager.stopDecisionTimer();
+                        this.decisionTimeRecorded = true;
+                    }
+                }
+                
+                if ((leftHit || rightHit) && !this.disappearTimer) {
+                    this.activeSphere.setAttribute('color', '#0000ff');
+                    
+                    const handUsed = leftHit ? 'LEFT' : 'RIGHT';
+                    
+                    const scoreManager = document.querySelector('#score-display').components['score-manager'];
+                    const hitResult = scoreManager.calculateHitPoints(handUsed);
+                    scoreManager.addPoints(hitResult.points);
+                    
+                    const sphereIndex = this.allSpheres.indexOf(this.activeSphere);
                     const dataManager = document.querySelector('#data-manager').components['data-manager'];
-                    dataManager.stopDecisionTimer();
-                    this.decisionTimeRecorded = true;
+                    dataManager.recordTrial(sphereIndex, handUsed, hitResult.points, hitResult.hitType, dataManager.currentDecisionTime);
+                    
+                    this.startDisappearTimer();
+                    this.currentState = 'waiting-to-disappear';
                 }
-            }
-            
-            if ((leftHit || rightHit) && !this.disappearTimer) {
-                this.activeSphere.setAttribute('color', '#0000ff');
-                
-                const handUsed = leftHit ? 'LEFT' : 'RIGHT';
-                
-                const scoreManager = document.querySelector('#score-display').components['score-manager'];
-                const hitResult = scoreManager.calculateHitPoints(handUsed);
-                scoreManager.addPoints(hitResult.points);
-                
-                const sphereIndex = this.allSpheres.indexOf(this.activeSphere);
-                const dataManager = document.querySelector('#data-manager').components['data-manager'];
-                dataManager.recordTrial(sphereIndex, handUsed, hitResult.points, hitResult.hitType, dataManager.currentDecisionTime);
-                
-                this.startDisappearTimer();
-                this.currentState = 'waiting-to-disappear';
             }
         }
     },
