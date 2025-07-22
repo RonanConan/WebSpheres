@@ -9,8 +9,8 @@ AFRAME.registerComponent('sphere-manager', {
         this.totalAppearances = 0;
         this.decisionTimeRecorded = false;
         this.lastSelectedPosition = -1;
-        this.radius = 0.7; 
-        this.height = 1.2; 
+        this.radius = 0.7;
+        this.height = 1.2;
         
         this.rectangle = document.querySelector('#rectangle');
         this.leftController = document.querySelector('[hand-tracking-controls="hand: left"]');
@@ -182,7 +182,7 @@ AFRAME.registerComponent('sphere-manager', {
                 const handUsed = leftHit ? 'LEFT' : 'RIGHT';
                 
                 const scoreManager = document.querySelector('#score-display').components['score-manager'];
-                const hitResult = scoreManager.calculateHitPoints();
+                const hitResult = scoreManager.calculateHitPoints(handUsed);
                 scoreManager.addPoints(hitResult.points);
                 
                 const sphereIndex = this.allSpheres.indexOf(this.activeSphere);
@@ -270,9 +270,9 @@ AFRAME.registerComponent('sphere-manager', {
     },
     
     isInsideRectangle: function(handPos, rectanglePos) {
-        const width = 0.45;  
-        const height = 0.2;  
-        const depth = 0.35;  
+        const width = 0.45;
+        const height = 0.2;
+        const depth = 0.35;
         return Math.abs(handPos.x - rectanglePos.x) < width &&
                Math.abs(handPos.y - rectanglePos.y) < height &&
                Math.abs(handPos.z - rectanglePos.z) < depth;
