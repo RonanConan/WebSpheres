@@ -2,13 +2,17 @@ AFRAME.registerComponent('score-manager', {
     init: function() {
         this.score = 0;
         this.progressDisplay = document.querySelector('#progress-display');
+        this.leftHandCriticalChance = 0.2;  // 20% critical hit chance for left hand
+        this.rightHandCriticalChance = 0.2; // 20% critical hit chance for right hand
     },
     
-    calculateHitPoints: function() {
+    calculateHitPoints: function(handUsed) {
         const random = Math.random();
         const audioManager = document.querySelector('#audio-manager').components['audio-manager'];
         
-        if (random < 0.8) {
+        const criticalChance = handUsed === 'LEFT' ? this.leftHandCriticalChance : this.rightHandCriticalChance;
+        
+        if (random < (1 - criticalChance)) {
             audioManager.playHitSound('normal');
             return {
                 points: Math.floor(Math.random() * 5) + 1,
