@@ -13,7 +13,8 @@ AFRAME.registerComponent('sphere-manager', {
         this.height = 1.2;
         this.isPaused = true;
         
-        this.rectangle = document.querySelector('#rectangle');
+        this.leftRectangle = document.querySelector('#left-rectangle');
+        this.rightRectangle = document.querySelector('#right-rectangle');
         this.leftController = document.querySelector('[hand-tracking-controls="hand: left"]');
         this.rightController = document.querySelector('[hand-tracking-controls="hand: right"]');
         this.scoreDisplay = document.querySelector('#score-display');
@@ -107,12 +108,17 @@ AFRAME.registerComponent('sphere-manager', {
     },
     
     calibrateLap: function() {
+        const leftPos = this.getHandPosition(this.leftController);
         const rightPos = this.getHandPosition(this.rightController);
         
+        if (leftPos && leftPos.y !== undefined) {
+            const currentLeftPos = this.leftRectangle.getAttribute('position');
+            this.leftRectangle.setAttribute('position', `${leftPos.x} ${leftPos.y} ${currentLeftPos.z}`);
+        }
+        
         if (rightPos && rightPos.y !== undefined) {
-            const currentPos = this.rectangle.getAttribute('position');
-            
-            this.rectangle.setAttribute('position', `${currentPos.x} ${rightPos.y} ${currentPos.z}`);
+            const currentRightPos = this.rightRectangle.getAttribute('position');
+            this.rightRectangle.setAttribute('position', `${rightPos.x} ${rightPos.y} ${currentRightPos.z}`);
         }
     },
     
@@ -145,7 +151,8 @@ AFRAME.registerComponent('sphere-manager', {
     
     tick: function() {
         if (!this.isPaused) {
-            const rectanglePos = this.rectangle.getAttribute('position');
+            const leftRectanglePos = this.leftRectangle.getAttribute('position');
+            const rightRectanglePos = this.rightRectangle.getAttribute('position');
             const leftController = this.leftController;
             const rightController = this.rightController;
             
@@ -153,7 +160,7 @@ AFRAME.registerComponent('sphere-manager', {
                 if (leftController && rightController) {
                     const leftPos = this.getHandPosition(leftController);
                     const rightPos = this.getHandPosition(rightController);
-                    if (leftPos && rightPos && this.isInsideRectangle(leftPos, rectanglePos) && this.isInsideRectangle(rightPos, rectanglePos)) {
+                    if (leftPos && rightPos && this.isInsideRectangle(leftPos, leftRectanglePos) && this.isInsideRectangle(rightPos, rightRectanglePos)) {
                         if (!this.appearTimer) {
                             this.selectRandomSphere();
                             if (this.activeSphere) {
@@ -169,7 +176,7 @@ AFRAME.registerComponent('sphere-manager', {
                 if (leftController && rightController) {
                     const leftPos = this.getHandPosition(leftController);
                     const rightPos = this.getHandPosition(rightController);
-                    if (!leftPos || !rightPos || !this.isInsideRectangle(leftPos, rectanglePos) || !this.isInsideRectangle(rightPos, rectanglePos)) {
+                    if (!leftPos || !rightPos || !this.isInsideRectangle(leftPos, leftRectanglePos) || !this.isInsideRectangle(rightPos, rightRectanglePos)) {
                         clearTimeout(this.appearTimer);
                         this.appearTimer = null;
                         this.activeSphere = null;
@@ -187,8 +194,8 @@ AFRAME.registerComponent('sphere-manager', {
                 let rightHit = rightPos && this.isInsideSphere(rightPos, spherePos);
                 
                 if (!this.decisionTimeRecorded && leftPos && rightPos) {
-                    const leftInRect = this.isInsideRectangle(leftPos, rectanglePos);
-                    const rightInRect = this.isInsideRectangle(rightPos, rectanglePos);
+                    const leftInRect = this.isInsideRectangle(leftPos, leftRectanglePos);
+                    const rightInRect = this.isInsideRectangle(rightPos, rightRectanglePos);
                     
                     if (!leftInRect || !rightInRect) {
                         const dataManager = document.querySelector('#data-manager').components['data-manager'];
