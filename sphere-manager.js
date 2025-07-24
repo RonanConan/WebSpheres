@@ -59,6 +59,18 @@ AFRAME.registerComponent('sphere-manager', {
             if (event.code === 'KeyP') {
                 this.resumeGame();
             }
+            if (event.code === 'KeyC') {
+                const scoreManager = document.querySelector('#score-display').components['score-manager'];
+                scoreManager.toggleCondition();
+            }
+            if (event.code === 'Digit1') {
+                const scoreManager = document.querySelector('#score-display').components['score-manager'];
+                scoreManager.setDominantHand('LEFT');
+            }
+            if (event.code === 'Digit2') {
+                const scoreManager = document.querySelector('#score-display').components['score-manager'];
+                scoreManager.setDominantHand('RIGHT');
+            }
         });
     },
     
