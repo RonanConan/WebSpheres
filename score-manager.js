@@ -2,14 +2,42 @@ AFRAME.registerComponent('score-manager', {
     init: function() {
         this.score = 0;
         this.progressDisplay = document.querySelector('#progress-display');
-        this.leftHandCriticalChance = 0.2;  // 20% critical hit chance for left hand
-        this.rightHandCriticalChance = 0.2; // 20% critical hit chance for right hand
+        this.leftHandCriticalChance = 0.2;
+        this.rightHandCriticalChance = 0.2; 
+        this.currentCondition = 1;
+        this.dominantHand = 'LEFT';
+    },
+    
+    toggleCondition: function() {
+        this.currentCondition = this.currentCondition === 1 ? 2 : 1;
+        this.updateProbabilities();
+    },
+    
+    setDominantHand: function(hand) {
+        this.dominantHand = hand;
+        this.updateProbabilities();
+    },
+    
+    updateProbabilities: function() {
+        if (this.currentCondition === 1) {
+            this.leftHandCriticalChance = 0.2;
+            this.rightHandCriticalChance = 0.2;
+        } else {
+            if (this.dominantHand === 'LEFT') {
+                this.leftHandCriticalChance = 0.1;
+                this.rightHandCriticalChance = 0.8;
+            } else {
+                this.leftHandCriticalChance = 0.8;
+                this.rightHandCriticalChance = 0.1;
+            }
+        }
     },
     
     calculateHitPoints: function(handUsed) {
         const random = Math.random();
         const audioManager = document.querySelector('#audio-manager').components['audio-manager'];
         
+        // Get critical hit chance based on hand used
         const criticalChance = handUsed === 'LEFT' ? this.leftHandCriticalChance : this.rightHandCriticalChance;
         
         if (random < (1 - criticalChance)) {
