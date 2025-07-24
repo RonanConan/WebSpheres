@@ -35,17 +35,22 @@
         <a-entity id="sphere-manager" sphere-manager></a-entity>
         
         <a-box 
-            id="rectangle"
-            position="0 0.9 -0.4"
+            id="left-rectangle"
+            position="-0.3 0.9 -0.4"
             geometry="width: 0.8; height: 0.3; depth: 0.6"
             material="color: #00ff00; transparent: true; opacity: 0.3">
         </a-box>
         
-        <!-- Hand tracking controls for participants -->
+        <a-box 
+            id="right-rectangle"
+            position="0.3 0.9 -0.4"
+            geometry="width: 0.8; height: 0.3; depth: 0.6"
+            material="color: #00ff00; transparent: true; opacity: 0.3">
+        </a-box>
+        
         <a-entity hand-tracking-controls="hand: left"></a-entity>
         <a-entity hand-tracking-controls="hand: right"></a-entity>
         
-        <!-- Keep right controller for researcher data export (hidden) -->
         <a-entity meta-touch-controls="hand: right; model: false"></a-entity>
     </a-scene>
 </body>
