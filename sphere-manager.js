@@ -45,30 +45,40 @@ AFRAME.registerComponent('sphere-manager', {
     
     setupCalibration: function() {
         document.addEventListener('keydown', (event) => {
+            const audioManager = document.querySelector('#audio-manager').components['audio-manager'];
+            
             if (event.code === 'Space') {
+                audioManager.playCalibrationSound('reach-calibration');
                 this.calibrateReach();
             }
             if (event.code === 'KeyH') {
+                audioManager.playCalibrationSound('height-calibration');
                 this.calibrateHeight();
             }
             if (event.code === 'KeyL') {
+                audioManager.playCalibrationSound('lap-calibration');
                 this.calibrateLap();
             }
             if (event.code === 'KeyS') {
+                audioManager.playCalibrationSound('switch');
                 this.saveData();
             }
             if (event.code === 'KeyP') {
+                audioManager.playCalibrationSound('switch');
                 this.resumeGame();
             }
             if (event.code === 'KeyC') {
+                audioManager.playCalibrationSound('switch');
                 const scoreManager = document.querySelector('#score-display').components['score-manager'];
                 scoreManager.toggleCondition();
             }
             if (event.code === 'Digit1') {
+                audioManager.playCalibrationSound('left-hand');
                 const scoreManager = document.querySelector('#score-display').components['score-manager'];
                 scoreManager.setDominantHand('LEFT');
             }
             if (event.code === 'Digit2') {
+                audioManager.playCalibrationSound('right-hand');
                 const scoreManager = document.querySelector('#score-display').components['score-manager'];
                 scoreManager.setDominantHand('RIGHT');
             }
