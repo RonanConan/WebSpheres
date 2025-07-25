@@ -297,9 +297,9 @@ AFRAME.registerComponent('sphere-manager', {
     },
     
     isInsideRectangle: function(handPos, rectanglePos) {
-        const width = 0.45;
-        const height = 0.2;
-        const depth = 0.35;
+        const width = 0.12;
+        const height = 0.045;
+        const depth = 0.09;
         return Math.abs(handPos.x - rectanglePos.x) < width &&
                Math.abs(handPos.y - rectanglePos.y) < height &&
                Math.abs(handPos.z - rectanglePos.z) < depth;
