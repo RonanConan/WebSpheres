@@ -111,12 +111,12 @@ AFRAME.registerComponent('sphere-manager', {
         const leftPos = this.getHandPosition(this.leftController);
         const rightPos = this.getHandPosition(this.rightController);
         
-        if (leftPos && leftPos.y !== undefined) {
-            this.leftRectangle.setAttribute('position', `${leftPos.x} ${leftPos.y} ${leftPos.z}`);
+        if (leftPos && leftPos.y !== undefined && leftPos.z !== undefined) {
+            this.leftRectangle.setAttribute('position', `${leftPos.x} ${leftPos.y} ${leftPos.z + 0.02}`);
         }
         
-        if (rightPos && rightPos.y !== undefined) {
-            this.rightRectangle.setAttribute('position', `${rightPos.x} ${rightPos.y} ${rightPos.z}`);
+        if (rightPos && rightPos.y !== undefined && rightPos.z !== undefined) {
+            this.rightRectangle.setAttribute('position', `${rightPos.x} ${rightPos.y} ${rightPos.z + 0.02}`);
         }
     },
     
