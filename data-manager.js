@@ -95,10 +95,10 @@ AFRAME.registerComponent('data-manager', {
         }
         
         // Generate CSV content
-        let csvContent = 'Trial,Target,Hand,Points,HitType,DecisionTime\n';
+        let csvContent = 'Trial,Target,Hand,Points,HitType,DecisionTime,TotalMovementTime\n';
         
         this.trialData.forEach(trial => {
-            csvContent += `${trial.trial},${trial.target},${trial.hand},${trial.points},${trial.hitType},${trial.decisionTime}\n`;
+            csvContent += `${trial.trial},${trial.target},${trial.hand},${trial.points},${trial.hitType},${trial.decisionTime},${trial.totalMovementTime}\n`;
         });
         
         // Create and download CSV file
