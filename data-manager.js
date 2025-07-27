@@ -4,6 +4,7 @@ AFRAME.registerComponent('data-manager', {
         this.trialNumber = 0;
         this.sphereAppearTime = 0;
         this.currentDecisionTime = 0;
+        this.totalTrials = 352;
         this.setupManualExport();
     },
     
@@ -80,7 +81,7 @@ AFRAME.registerComponent('data-manager', {
         this.currentDecisionTime = 0;
         
         // Check if session complete (110 trials)
-        if (this.trialNumber >= 110) {
+        if (this.trialNumber >= this.totalTrials) {
             setTimeout(() => {
                 this.exportCSV();
             }, 1000); // Delay to ensure last trial is recorded
