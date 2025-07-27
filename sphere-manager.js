@@ -230,8 +230,8 @@ AFRAME.registerComponent('sphere-manager', {
                     
                     const sphereIndex = this.allSpheres.indexOf(this.activeSphere);
                     const dataManager = document.querySelector('#data-manager').components['data-manager'];
-                    const totalMovementTime = dataManager.sphereAppearTime > 0 ? Date.now() - dataManager.sphereAppearTime : 0;
-                    dataManager.recordTrial(sphereIndex, handUsed, hitResult.points, hitResult.hitType, dataManager.currentDecisionTime, totalMovementTime);
+                    dataManager.calculateAndStoreMovementTime();
+                    dataManager.recordTrial(sphereIndex, handUsed, hitResult.points, hitResult.hitType, dataManager.currentDecisionTime);
                     
                     this.startDisappearTimer();
                     this.currentState = 'waiting-to-disappear';
