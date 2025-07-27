@@ -63,6 +63,10 @@ AFRAME.registerComponent('data-manager', {
         }
     },
     
+    calculateMovementTime: function() {
+        return this.sphereAppearTime > 0 ? Date.now() - this.sphereAppearTime : 0;
+    },
+    
     recordTrial: function(targetPosition, handUsed, points, hitType, decisionTime) {
         this.trialNumber++;
         this.trialData.push({
