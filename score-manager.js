@@ -2,8 +2,8 @@ AFRAME.registerComponent('score-manager', {
     init: function() {
         this.score = 0;
         this.progressDisplay = document.querySelector('#progress-display');
-        this.leftHandCriticalChance = 0.2;
-        this.rightHandCriticalChance = 0.2; 
+        this.leftHandCriticalChance = 0.2;  // 20% critical hit chance for left hand
+        this.rightHandCriticalChance = 0.2; // 20% critical hit chance for right hand
         this.currentCondition = 1;
         this.dominantHand = 'LEFT';
     },
@@ -20,15 +20,15 @@ AFRAME.registerComponent('score-manager', {
     
     updateProbabilities: function() {
         if (this.currentCondition === 1) {
-            this.leftHandCriticalChance = 0.2;
-            this.rightHandCriticalChance = 0.2;
+            this.leftHandCriticalChance = 0.3;
+            this.rightHandCriticalChance = 0.3;
         } else {
             if (this.dominantHand === 'LEFT') {
-                this.leftHandCriticalChance = 0.1;
-                this.rightHandCriticalChance = 0.8;
+                this.leftHandCriticalChance = 0.05;
+                this.rightHandCriticalChance = 0.55;
             } else {
-                this.leftHandCriticalChance = 0.8;
-                this.rightHandCriticalChance = 0.1;
+                this.leftHandCriticalChance = 0.55;
+                this.rightHandCriticalChance = 0.05;
             }
         }
     },
