@@ -12,6 +12,8 @@ AFRAME.registerComponent('sphere-manager', {
         this.radius = 0.7;
         this.height = 1.2;
         this.isPaused = true;
+        this.appearancesPerSphere = 32;
+        this.totalTrials = 11 * this.appearancesPerSphere;
         
         this.leftRectangle = document.querySelector('#left-rectangle');
         this.rightRectangle = document.querySelector('#right-rectangle');
@@ -242,14 +244,14 @@ AFRAME.registerComponent('sphere-manager', {
     selectRandomSphere: function() {
         let availablePositions = [];
         for (let i = 0; i < 11; i++) {
-            if (this.appearanceCounts[i] < 10 && i !== this.lastSelectedPosition) {
+            if (this.appearanceCounts[i] < this.appearancesPerSphere && i !== this.lastSelectedPosition) {
                 availablePositions.push(i);
             }
         }
         
         if (availablePositions.length === 0) {
             for (let i = 0; i < 11; i++) {
-                if (this.appearanceCounts[i] < 10) {
+                if (this.appearanceCounts[i] < this.appearancesPerSphere) {
                     availablePositions.push(i);
                 }
             }
@@ -275,7 +277,7 @@ AFRAME.registerComponent('sphere-manager', {
             this.totalAppearances++;
             
             const scoreManager = document.querySelector('#score-display').components['score-manager'];
-            scoreManager.updateProgress(this.totalAppearances, 110);
+            scoreManager.updateProgress(this.totalAppearances, this.totalTrials);
             
             const dataManager = document.querySelector('#data-manager').components['data-manager'];
             dataManager.startDecisionTimer();
