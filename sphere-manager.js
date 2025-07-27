@@ -14,6 +14,7 @@ AFRAME.registerComponent('sphere-manager', {
         this.isPaused = true;
         this.appearancesPerSphere = 32;
         this.totalTrials = 11 * this.appearancesPerSphere;
+        this.trialsSwitched = false;
         
         this.leftRectangle = document.querySelector('#left-rectangle');
         this.rightRectangle = document.querySelector('#right-rectangle');
@@ -83,6 +84,10 @@ AFRAME.registerComponent('sphere-manager', {
                 audioManager.playCalibrationSound('right-hand');
                 const scoreManager = document.querySelector('#score-display').components['score-manager'];
                 scoreManager.setDominantHand('RIGHT');
+            }
+            if (event.code === 'KeyN') {
+                audioManager.playCalibrationSound('switch');
+                this.switchToShortSession();
             }
         });
     },
@@ -232,6 +237,17 @@ AFRAME.registerComponent('sphere-manager', {
                 }
             }
         }
+    },
+    
+    switchToShortSession: function() {
+        if (this.trialsSwitched) return;
+        
+        this.appearancesPerSphere = 10;
+        this.totalTrials = 110;
+        this.trialsSwitched = true;
+        
+        const dataManager = document.querySelector('#data-manager').components['data-manager'];
+        dataManager.updateTotalTrials(110);
     },
     
     getHandPosition: function(handController) {
