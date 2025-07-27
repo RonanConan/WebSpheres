@@ -4,6 +4,7 @@ AFRAME.registerComponent('data-manager', {
         this.trialNumber = 0;
         this.sphereAppearTime = 0;
         this.currentDecisionTime = 0;
+        this.currentMovementTime = 0;
         this.totalTrials = 352;
         this.setupManualExport();
     },
@@ -63,8 +64,10 @@ AFRAME.registerComponent('data-manager', {
         }
     },
     
-    calculateMovementTime: function() {
-        return this.sphereAppearTime > 0 ? Date.now() - this.sphereAppearTime : 0;
+    calculateAndStoreMovementTime: function() {
+        if (this.sphereAppearTime > 0) {
+            this.currentMovementTime = Date.now() - this.sphereAppearTime;
+        }
     },
     
     recordTrial: function(targetPosition, handUsed, points, hitType, decisionTime) {
