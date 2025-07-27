@@ -122,6 +122,10 @@ AFRAME.registerComponent('data-manager', {
         console.log(`Exported ${this.trialData.length} trials to ${filename}`);
     },
     
+    updateTotalTrials: function(newTotal) {
+        this.totalTrials = newTotal;
+    },
+    
     getTrialCount: function() {
         return this.trialNumber;
     },
