@@ -30,7 +30,6 @@ AFRAME.registerComponent('data-manager', {
             });
             this.listenerAttached = true;
             clearInterval(this.attachInterval);
-            console.log('A button listener attached successfully');
         }
     },
     
@@ -78,7 +77,8 @@ AFRAME.registerComponent('data-manager', {
             hand: handUsed,
             points: points,
             hitType: hitType,
-            decisionTime: decisionTime
+            decisionTime: decisionTime,
+            totalMovementTime: this.currentMovementTime
         });
         
         console.log(`Trial ${this.trialNumber}: Target ${targetPosition + 1}, Hand ${handUsed}, Points ${points}, Type ${hitType}, Decision Time ${decisionTime}ms`);
@@ -86,6 +86,7 @@ AFRAME.registerComponent('data-manager', {
         // Reset timer for next trial
         this.sphereAppearTime = 0;
         this.currentDecisionTime = 0;
+        this.currentMovementTime = 0;
         
         // Check if session complete (110 trials)
         if (this.trialNumber >= this.totalTrials) {
@@ -97,7 +98,6 @@ AFRAME.registerComponent('data-manager', {
     
     exportCSV: function() {
         if (this.trialData.length === 0) {
-            console.log('No trial data to export');
             return;
         }
         
@@ -125,8 +125,6 @@ AFRAME.registerComponent('data-manager', {
         document.body.removeChild(link);
         
         URL.revokeObjectURL(url);
-        
-        console.log(`Exported ${this.trialData.length} trials to ${filename}`);
     },
     
     updateTotalTrials: function(newTotal) {
@@ -140,6 +138,5 @@ AFRAME.registerComponent('data-manager', {
     resetSession: function() {
         this.trialData = [];
         this.trialNumber = 0;
-        console.log('Session data reset');
     }
 });
