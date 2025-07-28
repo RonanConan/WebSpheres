@@ -39,12 +39,12 @@ While seated, participants reach for spheres that appear at various positions, w
 
 ## How the Task Works
 1. **Starting Position**: Participant places both hands in semi-transparent green rectangular zones (home positions, which they always reach from)
-2. **Sphere Appearance**: Red spheres appear randomly at 11 pre-assigned positions arranged in an 80° arc (-40° to +40° from center, participant's perspective)
+2. **Sphere Appearance**: Red spheres appear randomly at 11 pre-assigned positions arranged in an 80° arc (-40° to +40° from centre, participant's perspective)
 3. **Reaching**: Participant reaches out to touch the sphere with either hand
 4. **Hit Detection**: System detects contact when hand comes within 8cm of sphere center (this is to allow for some imprecision stemming from the hand tracking)
 5. **Scoring System**: Points awarded randomly based on probability:
-   - **Normal hits**: 1-5 points (lower probability sound plays)
-   - **Critical hits**: 5-10 points (higher probability sound plays)
+   - **Normal hits**: 1-5 points (normal hit sound plays)
+   - **Critical hits**: 5-10 points (critical hit sound plays)
    - The probability of critical vs normal hits depends on experimental condition and hand used
 6. **Sphere Feedback**: Sphere turns blue when hit, disappears after 300ms
 7. **Trial Reset**: Participant returns hands to starting zones to trigger next sphere (500ms delay)
@@ -138,7 +138,7 @@ To avoid disappointment, it is recommended that the experimenter tests the appli
 
 ## During the Session
 
-### Participant Instructions (Say Exactly)
+### Participant Instructions 
 1. "Keep both hands in the green rectangles until a red sphere appears"
 2. "When you see a red sphere, reach out with whichever hand feels right and touch it"  
 3. "The sphere will turn blue when you hit it"
@@ -150,7 +150,7 @@ To avoid disappointment, it is recommended that the experimenter tests the appli
 - **Score display**: Shows current points earned (top of visual field)
 - **Progress display**: Shows percentage completion (below score)
 - **Session tracking**: Watch for participant fatigue, discomfort; it is recommended to ask at the halfway point if they want a break
-- **Data verification**: Post-experimetn, ensure that data look correct
+- **Data verification**: Post-experiment, ensure that data look correct
 
 ### What Participants See
 - Semi-transparent green rectangles for hand starting positions
@@ -257,10 +257,10 @@ To avoid disappointment, it is recommended that the experimenter tests the appli
 - **Position**: Calibrated to participant's natural hand resting positions
 
 ### Sphere Positioning Arc
-- **Total arc**: 80° (-40° to +40° from center)
+- **Total arc**: 80° (-40° to +40° from centre)
 - **Number of positions**: 11
 - **Spacing**: 8° increments between positions
-- **Radius**: 80% of participant's maximum  reach (calibrated)
+- **Radius**: 80% of participant's maximum reach (calibrated)
 - **Height**: 80% of participant's head height (calibrated)
 
 ### Timing Parameters
