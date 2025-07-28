@@ -3,7 +3,7 @@
 ## Overview
 This VR application is designed for research studies investigating the impact of reinforcement (via game points) on hand selection as assessed through a reaching task.
 
-Participants reach for spheres that appear at various positions while seated, with the system collecting detailed performance and timing data. The layout of the stimuli is similar to prior studies which investigated hand selection behaviours in healthy controls ([Valyear et al., 2019](https://doi.org/10.3758/s13423-018-1510-1), [Stoloff et al., 2011](https://doi.org/10.3389/fnins.2011.00041), [Oliveira et al., 2010](https://doi.org/10.1073/pnas.1006223107)).
+While seated, participants reach for spheres that appear at various positions, with the system collecting detailed performance and timing data. The layout of the stimuli is similar to prior studies which investigated hand selection behaviours in healthy controls ([Valyear et al., 2019](https://doi.org/10.3758/s13423-018-1510-1), [Stoloff et al., 2011](https://doi.org/10.3389/fnins.2011.00041), [Oliveira et al., 2010](https://doi.org/10.1073/pnas.1006223107)).
 
 ## Hardware Requirements
 - **Primary**: Meta Quest 3 with Quest Browser
