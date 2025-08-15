@@ -2,8 +2,8 @@ AFRAME.registerComponent('score-manager', {
     init: function() {
         this.score = 0;
         this.progressDisplay = document.querySelector('#progress-display');
-        this.leftHandCriticalChance = 0.2;  // 20% critical hit chance for left hand
-        this.rightHandCriticalChance = 0.2; // 20% critical hit chance for right hand
+        this.leftHandCriticalChance = 0.3;  
+        this.rightHandCriticalChance = 0.3; 
         this.currentCondition = 1;
         this.dominantHand = 'LEFT';
     },
