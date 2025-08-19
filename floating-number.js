@@ -21,6 +21,9 @@ AFRAME.registerComponent('floating-number', {
             color: color
         });
         
+        const textPos = this.el.getAttribute('position');
+        this.el.object3D.lookAt(0, textPos.y, 0);
+        
         this.el.setAttribute('animation', {
             property: 'position',
             to: `${position.x} ${position.y + 0.25} ${position.z}`,
