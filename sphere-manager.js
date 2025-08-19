@@ -46,6 +46,17 @@ AFRAME.registerComponent('sphere-manager', {
         }
     },
     
+    createFloatingNumber: function(spherePosition, points, hitType) {
+        const floatingNumber = document.createElement('a-entity');
+        floatingNumber.setAttribute('position', `${spherePosition.x} ${spherePosition.y + 0.1} ${spherePosition.z}`);
+        floatingNumber.setAttribute('floating-number', {
+            value: points,
+            hitType: hitType
+        });
+        
+        this.el.sceneEl.appendChild(floatingNumber);
+    },
+    
     setupCalibration: function() {
         document.addEventListener('keydown', (event) => {
             const audioManager = document.querySelector('#audio-manager').components['audio-manager'];
@@ -227,6 +238,9 @@ AFRAME.registerComponent('sphere-manager', {
                     const scoreManager = document.querySelector('#score-display').components['score-manager'];
                     const hitResult = scoreManager.calculateHitPoints(handUsed);
                     scoreManager.addPoints(hitResult.points);
+                    
+                    // Create floating damage number
+                    this.createFloatingNumber(spherePos, hitResult.points, hitResult.hitType);
                     
                     const sphereIndex = this.allSpheres.indexOf(this.activeSphere);
                     const dataManager = document.querySelector('#data-manager').components['data-manager'];
