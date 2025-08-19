@@ -17,7 +17,7 @@ AFRAME.registerComponent('floating-number', {
         this.el.setAttribute('text', {
             value: `+${data.value}`,
             align: 'center',
-            width: 6,
+            width: 3,
             color: color
         });
         
