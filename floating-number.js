@@ -8,13 +8,11 @@ AFRAME.registerComponent('floating-number', {
         const data = this.data;
         const position = this.el.getAttribute('position');
         
-        // Basic error checking
         if (!position) {
             console.warn('Floating number created without position');
             return;
         }
         
-        // Set text content and appearance with color
         const color = data.hitType === 'critical' ? '#FFD700' : '#FFFFFF';
         this.el.setAttribute('text', {
             value: `+${data.value}`,
@@ -23,7 +21,6 @@ AFRAME.registerComponent('floating-number', {
             color: color
         });
         
-        // Animate upward movement and fade out
         this.el.setAttribute('animation', {
             property: 'position',
             to: `${position.x} ${position.y + 0.25} ${position.z}`,
@@ -38,7 +35,6 @@ AFRAME.registerComponent('floating-number', {
             easing: 'easeOutQuad'
         });
         
-        // Remove entity after animation completes
         setTimeout(() => {
             if (this.el.parentNode) {
                 this.el.parentNode.removeChild(this.el);
