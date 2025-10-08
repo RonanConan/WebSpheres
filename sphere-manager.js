@@ -172,20 +172,36 @@ AFRAME.registerComponent('sphere-manager', {
     },
     
     resumeGame: function() {
+        const dataManagerEl = document.querySelector('#data-manager');
+        if (dataManagerEl && dataManagerEl.components['data-manager']) {
+            dataManagerEl.components['data-manager'].startSession();
+        }
         this.isPaused = false;
     },
-    
+
     tick: function() {
         if (!this.isPaused) {
             const leftRectanglePos = this.leftRectangle.getAttribute('position');
             const rightRectanglePos = this.rightRectangle.getAttribute('position');
             const leftController = this.leftController;
             const rightController = this.rightController;
-            
+            const dataManagerEl = document.querySelector('#data-manager');
+            const dataManager = dataManagerEl ? dataManagerEl.components['data-manager'] : null;
+
+            const leftPos = leftController ? this.getHandPosition(leftController) : null;
+            const rightPos = rightController ? this.getHandPosition(rightController) : null;
+
+            if (dataManager) {
+                if (leftPos) {
+                    dataManager.recordKinematicData('left', leftPos);
+                }
+                if (rightPos) {
+                    dataManager.recordKinematicData('right', rightPos);
+                }
+            }
+
             if (this.currentState === 'invisible') {
                 if (leftController && rightController) {
-                    const leftPos = this.getHandPosition(leftController);
-                    const rightPos = this.getHandPosition(rightController);
                     if (leftPos && rightPos && this.isInsideRectangle(leftPos, leftRectanglePos) && this.isInsideRectangle(rightPos, rightRectanglePos)) {
                         if (!this.appearTimer) {
                             this.selectRandomSphere();
@@ -197,11 +213,9 @@ AFRAME.registerComponent('sphere-manager', {
                     }
                 }
             }
-            
+
             if (this.currentState === 'waiting-to-appear') {
                 if (leftController && rightController) {
-                    const leftPos = this.getHandPosition(leftController);
-                    const rightPos = this.getHandPosition(rightController);
                     if (!leftPos || !rightPos || !this.isInsideRectangle(leftPos, leftRectanglePos) || !this.isInsideRectangle(rightPos, rightRectanglePos)) {
                         clearTimeout(this.appearTimer);
                         this.appearTimer = null;
@@ -213,23 +227,22 @@ AFRAME.registerComponent('sphere-manager', {
             
             if (this.currentState === 'visible' && this.activeSphere) {
                 const spherePos = this.activeSphere.getAttribute('position');
-                const leftPos = this.getHandPosition(leftController);
-                const rightPos = this.getHandPosition(rightController);
-                
+
                 let leftHit = leftPos && this.isInsideSphere(leftPos, spherePos);
                 let rightHit = rightPos && this.isInsideSphere(rightPos, spherePos);
-                
+
                 if (!this.decisionTimeRecorded && leftPos && rightPos) {
                     const leftInRect = this.isInsideRectangle(leftPos, leftRectanglePos);
                     const rightInRect = this.isInsideRectangle(rightPos, rightRectanglePos);
                     
                     if (!leftInRect || !rightInRect) {
-                        const dataManager = document.querySelector('#data-manager').components['data-manager'];
-                        dataManager.stopDecisionTimer();
+                        if (dataManager) {
+                            dataManager.stopDecisionTimer();
+                        }
                         this.decisionTimeRecorded = true;
                     }
                 }
-                
+
                 if ((leftHit || rightHit) && !this.disappearTimer) {
                     this.activeSphere.setAttribute('color', '#0000ff');
                     
@@ -243,10 +256,11 @@ AFRAME.registerComponent('sphere-manager', {
                     this.createFloatingNumber(spherePos, hitResult.points, hitResult.hitType);
                     
                     const sphereIndex = this.allSpheres.indexOf(this.activeSphere);
-                    const dataManager = document.querySelector('#data-manager').components['data-manager'];
-                    dataManager.calculateAndStoreMovementTime();
-                    dataManager.recordTrial(sphereIndex, handUsed, hitResult.points, hitResult.hitType, dataManager.currentDecisionTime);
-                    
+                    if (dataManager) {
+                        dataManager.calculateAndStoreMovementTime();
+                        dataManager.recordTrial(sphereIndex, handUsed, hitResult.points, hitResult.hitType, dataManager.currentDecisionTime);
+                    }
+
                     this.startDisappearTimer();
                     this.currentState = 'waiting-to-disappear';
                 }

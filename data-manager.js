@@ -6,6 +6,13 @@ AFRAME.registerComponent('data-manager', {
         this.currentDecisionTime = 0;
         this.currentMovementTime = 0;
         this.totalTrials = 352;
+        this.sessionStartTime = null;
+        this.pendingTrialTimestamp = null;
+        this.kinematicData = {
+            left: [],
+            right: []
+        };
+        this.recordingActive = false;
         this.setupManualExport();
     },
     
@@ -55,6 +62,11 @@ AFRAME.registerComponent('data-manager', {
     startDecisionTimer: function() {
         this.sphereAppearTime = Date.now();
         this.currentDecisionTime = 0;
+        if (this.sessionStartTime !== null) {
+            this.pendingTrialTimestamp = this.sphereAppearTime - this.sessionStartTime;
+        } else {
+            this.pendingTrialTimestamp = 0;
+        }
     },
     
     stopDecisionTimer: function() {
@@ -73,6 +85,7 @@ AFRAME.registerComponent('data-manager', {
         this.trialNumber++;
         this.trialData.push({
             trial: this.trialNumber,
+            timestamp: this.pendingTrialTimestamp !== null ? this.pendingTrialTimestamp : (this.sessionStartTime !== null ? Date.now() - this.sessionStartTime : 0),
             target: targetPosition + 1, // Convert 0-10 to 1-11
             hand: handUsed,
             points: points,
@@ -80,14 +93,15 @@ AFRAME.registerComponent('data-manager', {
             decisionTime: decisionTime,
             totalMovementTime: this.currentMovementTime
         });
-        
+
         console.log(`Trial ${this.trialNumber}: Target ${targetPosition + 1}, Hand ${handUsed}, Points ${points}, Type ${hitType}, Decision Time ${decisionTime}ms`);
-        
+
         // Reset timer for next trial
         this.sphereAppearTime = 0;
         this.currentDecisionTime = 0;
         this.currentMovementTime = 0;
-        
+        this.pendingTrialTimestamp = null;
+
         // Check if session complete (110 trials)
         if (this.trialNumber >= this.totalTrials) {
             setTimeout(() => {
@@ -100,21 +114,23 @@ AFRAME.registerComponent('data-manager', {
         if (this.trialData.length === 0) {
             return;
         }
-        
+
+        this.stopSession();
+
         // Generate CSV content
-        let csvContent = 'Trial,Target,Hand,Points,HitType,DecisionTime,TotalMovementTime\n';
-        
+        let csvContent = 'Trial,Timestamp,Target,Hand,Points,HitType,DecisionTime,TotalMovementTime\n';
+
         this.trialData.forEach(trial => {
-            csvContent += `${trial.trial},${trial.target},${trial.hand},${trial.points},${trial.hitType},${trial.decisionTime},${trial.totalMovementTime}\n`;
+            csvContent += `${trial.trial},${trial.timestamp},${trial.target},${trial.hand},${trial.points},${trial.hitType},${trial.decisionTime},${trial.totalMovementTime}\n`;
         });
-        
+
         // Create and download CSV file
         const blob = new Blob([csvContent], { type: 'text/csv' });
         const url = URL.createObjectURL(blob);
-        
+
         const timestamp = new Date().toISOString().slice(0, 19).replace(/:/g, '-');
         const filename = `vr-session-data-${timestamp}.csv`;
-        
+
         const link = document.createElement('a');
         link.href = url;
         link.download = filename;
@@ -123,10 +139,72 @@ AFRAME.registerComponent('data-manager', {
         document.body.appendChild(link);
         link.click();
         document.body.removeChild(link);
-        
+
         URL.revokeObjectURL(url);
+
+        this.exportKinematicCSVs(timestamp);
     },
-    
+
+    exportKinematicCSVs: function(timestamp) {
+        const hands = ['left', 'right'];
+
+        hands.forEach(hand => {
+            const data = this.kinematicData[hand];
+            if (!data || data.length === 0) {
+                return;
+            }
+
+            let csvContent = 'Timestamp,X,Y,Z\n';
+            data.forEach(entry => {
+                csvContent += `${entry.timestamp},${entry.x},${entry.y},${entry.z}\n`;
+            });
+
+            const blob = new Blob([csvContent], { type: 'text/csv' });
+            const url = URL.createObjectURL(blob);
+            const filename = `kinematics-${hand}-${timestamp}.csv`;
+
+            const link = document.createElement('a');
+            link.href = url;
+            link.download = filename;
+            link.style.display = 'none';
+
+            document.body.appendChild(link);
+            link.click();
+            document.body.removeChild(link);
+
+            URL.revokeObjectURL(url);
+        });
+    },
+
+    startSession: function() {
+        if (this.sessionStartTime === null) {
+            this.sessionStartTime = Date.now();
+        }
+        this.recordingActive = true;
+    },
+
+    stopSession: function() {
+        this.recordingActive = false;
+    },
+
+    recordKinematicData: function(hand, position) {
+        if (!this.recordingActive || this.sessionStartTime === null) {
+            return;
+        }
+
+        if (!position || position.x === undefined || position.y === undefined || position.z === undefined) {
+            return;
+        }
+
+        const timestamp = Date.now() - this.sessionStartTime;
+        this.kinematicData[hand].push({
+            timestamp: timestamp,
+            x: position.x,
+            y: position.y,
+            z: position.z
+        });
+    },
+
     updateTotalTrials: function(newTotal) {
         this.totalTrials = newTotal;
     },
@@ -138,5 +216,12 @@ AFRAME.registerComponent('data-manager', {
     resetSession: function() {
         this.trialData = [];
         this.trialNumber = 0;
+        this.sessionStartTime = null;
+        this.pendingTrialTimestamp = null;
+        this.kinematicData = {
+            left: [],
+            right: []
+        };
+        this.recordingActive = false;
     }
 });
