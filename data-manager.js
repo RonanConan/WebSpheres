@@ -145,6 +145,16 @@ AFRAME.registerComponent('data-manager', {
         this.exportKinematicCSVs(timestamp);
     },
 
+    // --- New helper: read and format home positions as 'x,y,z'
+    getHomePositionStrings: function() {
+        const leftRect = document.querySelector('#left-rectangle');
+        const rightRect = document.querySelector('#right-rectangle');
+        const lp = leftRect ? leftRect.getAttribute('position') : null;
+        const rp = rightRect ? rightRect.getAttribute('position') : null;
+        const fmt = (p) => (p && p.x !== undefined) ? `${p.x},${p.y},${p.z}` : '';
+        return { hpl: fmt(lp), hpr: fmt(rp) };
+    },
+
     exportKinematicCSVs: function(timestamp) {
         const hands = ['left', 'right'];
 
@@ -154,9 +164,10 @@ AFRAME.registerComponent('data-manager', {
                 return;
             }
 
-            let csvContent = 'Timestamp,X,Y,Z\n';
+            // Add HPL/HPR columns (one cell with x,y,z)
+            let csvContent = 'Timestamp,X,Y,Z,HPL,HPR\n';
             data.forEach(entry => {
-                csvContent += `${entry.timestamp},${entry.x},${entry.y},${entry.z}\n`;
+                csvContent += `${entry.timestamp},${entry.x},${entry.y},${entry.z},${entry.hpl},${entry.hpr}\n`;
             });
 
             const blob = new Blob([csvContent], { type: 'text/csv' });
@@ -197,11 +208,17 @@ AFRAME.registerComponent('data-manager', {
         }
 
         const timestamp = Date.now() - this.sessionStartTime;
+
+        // Read HPL/HPR each sample (keeps it simple and always present per row)
+        const { hpl, hpr } = this.getHomePositionStrings();
+
         this.kinematicData[hand].push({
             timestamp: timestamp,
             x: position.x,
             y: position.y,
-            z: position.z
+            z: position.z,
+            hpl: hpl,
+            hpr: hpr
         });
     },
 
