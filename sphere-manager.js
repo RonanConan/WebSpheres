@@ -80,6 +80,8 @@ AFRAME.registerComponent('sphere-manager', {
             if (event.code === 'KeyP') {
                 audioManager.playCalibrationSound('switch');
                 this.resumeGame();
+                const kinematicsManager = document.querySelector('#kinematics-manager').components['kinematics-manager'];
+                kinematicsManager.startTracking();
             }
             if (event.code === 'KeyC') {
                 audioManager.playCalibrationSound('switch');
@@ -151,6 +153,8 @@ AFRAME.registerComponent('sphere-manager', {
     saveData: function() {
         const dataManager = document.querySelector('#data-manager').components['data-manager'];
         dataManager.exportCSV();
+        const kinematicsManager = document.querySelector('#kinematics-manager').components['kinematics-manager'];
+        kinematicsManager.exportCSV();
     },
     
     updateTextPositions: function() {
