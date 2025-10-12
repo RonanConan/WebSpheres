@@ -87,12 +87,12 @@ AFRAME.registerComponent('sphere-manager', {
                 scoreManager.toggleCondition();
             }
             if (event.code === 'Digit1') {
-                audioManager.playCalibrationSound('left-hand');
+                audioManager.playCalibrationSound('switch');
                 const scoreManager = document.querySelector('#score-display').components['score-manager'];
                 scoreManager.setDominantHand('LEFT');
             }
             if (event.code === 'Digit2') {
-                audioManager.playCalibrationSound('right-hand');
+                audioManager.playCalibrationSound('switch');
                 const scoreManager = document.querySelector('#score-display').components['score-manager'];
                 scoreManager.setDominantHand('RIGHT');
             }
