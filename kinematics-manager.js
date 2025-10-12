@@ -25,6 +25,19 @@ AFRAME.registerComponent('kinematics-manager', {
         const leftRectPos = this.leftRectangle.getAttribute('position');
         const rightRectPos = this.rightRectangle.getAttribute('position');
         
+        // Get active sphere position
+        const sphereManager = document.querySelector('#sphere-manager').components['sphere-manager'];
+        let targetX = '';
+        let targetY = '';
+        let targetZ = '';
+        
+        if (sphereManager && sphereManager.activeSphere) {
+            const targetPos = sphereManager.activeSphere.getAttribute('position');
+            targetX = targetPos.x;
+            targetY = targetPos.y;
+            targetZ = targetPos.z;
+        }
+        
         if (leftPos) {
             this.leftHandData.push({
                 timestamp: timestamp,
@@ -33,7 +46,10 @@ AFRAME.registerComponent('kinematics-manager', {
                 handZ: leftPos.z,
                 homeX: leftRectPos.x,
                 homeY: leftRectPos.y,
-                homeZ: leftRectPos.z
+                homeZ: leftRectPos.z,
+                targetX: targetX,
+                targetY: targetY,
+                targetZ: targetZ
             });
         }
         
@@ -45,7 +61,10 @@ AFRAME.registerComponent('kinematics-manager', {
                 handZ: rightPos.z,
                 homeX: rightRectPos.x,
                 homeY: rightRectPos.y,
-                homeZ: rightRectPos.z
+                homeZ: rightRectPos.z,
+                targetX: targetX,
+                targetY: targetY,
+                targetZ: targetZ
             });
         }
     },
@@ -68,10 +87,10 @@ AFRAME.registerComponent('kinematics-manager', {
     },
     
     exportHandData: function(data, hand) {
-        let csvContent = 'Timestamp,HandX,HandY,HandZ,HomeX,HomeY,HomeZ\n';
+        let csvContent = 'Timestamp,HandX,HandY,HandZ,HomeX,HomeY,HomeZ,TargetX,TargetY,TargetZ\n';
         
         data.forEach(entry => {
-            csvContent += `${entry.timestamp},${entry.handX},${entry.handY},${entry.handZ},${entry.homeX},${entry.homeY},${entry.homeZ}\n`;
+            csvContent += `${entry.timestamp},${entry.handX},${entry.handY},${entry.handZ},${entry.homeX},${entry.homeY},${entry.homeZ},${entry.targetX},${entry.targetY},${entry.targetZ}\n`;
         });
         
         const blob = new Blob([csvContent], { type: 'text/csv' });
