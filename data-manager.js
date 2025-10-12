@@ -73,6 +73,7 @@ AFRAME.registerComponent('data-manager', {
         this.trialNumber++;
         this.trialData.push({
             trial: this.trialNumber,
+            timestamp: Date.now(),
             target: targetPosition + 1, // Convert 0-10 to 1-11
             hand: handUsed,
             points: points,
@@ -92,6 +93,8 @@ AFRAME.registerComponent('data-manager', {
         if (this.trialNumber >= this.totalTrials) {
             setTimeout(() => {
                 this.exportCSV();
+                const kinematicsManager = document.querySelector('#kinematics-manager').components['kinematics-manager'];
+                kinematicsManager.exportCSV();
             }, 1000); // Delay to ensure last trial is recorded
         }
     },
@@ -102,10 +105,10 @@ AFRAME.registerComponent('data-manager', {
         }
         
         // Generate CSV content
-        let csvContent = 'Trial,Target,Hand,Points,HitType,DecisionTime,TotalMovementTime\n';
+        let csvContent = 'Trial,Timestamp,Target,Hand,Points,HitType,DecisionTime,TotalMovementTime\n';
         
         this.trialData.forEach(trial => {
-            csvContent += `${trial.trial},${trial.target},${trial.hand},${trial.points},${trial.hitType},${trial.decisionTime},${trial.totalMovementTime}\n`;
+            csvContent += `${trial.trial},${trial.timestamp},${trial.target},${trial.hand},${trial.points},${trial.hitType},${trial.decisionTime},${trial.totalMovementTime}\n`;
         });
         
         // Create and download CSV file
