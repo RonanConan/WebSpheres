@@ -70,12 +70,10 @@ AFRAME.registerComponent('kinematics-manager', {
     },
     
     getHandPosition: function(handController) {
-        if (!handController?.object3D) {
+        if (!handController?.components?.['hand-tracking-controls']) {
             return null;
         }
-        const worldPos = new THREE.Vector3();
-        handController.object3D.getWorldPosition(worldPos);
-        return worldPos;
+        return handController.components['hand-tracking-controls'].indexTipPosition;
     },
     
     exportCSV: function() {
