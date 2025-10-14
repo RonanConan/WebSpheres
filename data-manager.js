@@ -6,6 +6,7 @@ AFRAME.registerComponent('data-manager', {
         this.currentDecisionTime = 0;
         this.currentMovementTime = 0;
         this.totalTrials = 352;
+        this.sessionStartTime = 0;
         this.setupManualExport();
     },
     
@@ -52,6 +53,10 @@ AFRAME.registerComponent('data-manager', {
         }
     },
     
+    startSession: function(startTime) {
+        this.sessionStartTime = startTime || Date.now();
+    },
+    
     startDecisionTimer: function() {
         this.sphereAppearTime = Date.now();
         this.currentDecisionTime = 0;
@@ -73,7 +78,7 @@ AFRAME.registerComponent('data-manager', {
         this.trialNumber++;
         this.trialData.push({
             trial: this.trialNumber,
-            timestamp: Date.now(),
+            timestamp: Date.now() - this.sessionStartTime,
             target: targetPosition + 1, // Convert 0-10 to 1-11
             hand: handUsed,
             points: points,
