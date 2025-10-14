@@ -3,6 +3,7 @@ AFRAME.registerComponent('kinematics-manager', {
         this.leftHandData = [];
         this.rightHandData = [];
         this.isTracking = false;
+        this.sessionStartTime = 0;
         
         this.leftController = document.querySelector('[hand-tracking-controls="hand: left"]');
         this.rightController = document.querySelector('[hand-tracking-controls="hand: right"]');
@@ -10,14 +11,15 @@ AFRAME.registerComponent('kinematics-manager', {
         this.rightRectangle = document.querySelector('#right-rectangle');
     },
     
-    startTracking: function() {
+    startTracking: function(startTime) {
         this.isTracking = true;
+        this.sessionStartTime = startTime || Date.now();
     },
     
     tick: function() {
         if (!this.isTracking) return;
         
-        const timestamp = Date.now();
+        const timestamp = Date.now() - this.sessionStartTime;
         
         const leftPos = this.getHandPosition(this.leftController);
         const rightPos = this.getHandPosition(this.rightController);
