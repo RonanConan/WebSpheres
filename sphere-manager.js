@@ -80,8 +80,14 @@ AFRAME.registerComponent('sphere-manager', {
             if (event.code === 'KeyP') {
                 audioManager.playCalibrationSound('switch');
                 this.resumeGame();
+                
+                const startTime = Date.now();
+                
                 const kinematicsManager = document.querySelector('#kinematics-manager').components['kinematics-manager'];
-                kinematicsManager.startTracking();
+                kinematicsManager.startTracking(startTime);
+                
+                const dataManager = document.querySelector('#data-manager').components['data-manager'];
+                dataManager.startSession(startTime);
             }
             if (event.code === 'KeyC') {
                 audioManager.playCalibrationSound('switch');
