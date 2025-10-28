@@ -15,6 +15,9 @@ AFRAME.registerComponent('sphere-manager', {
         this.appearancesPerSphere = 32;
         this.totalTrials = 11 * this.appearancesPerSphere;
         this.trialsSwitched = false;
+        this.fModeActive = false;
+        this.currentPhase = 0;
+        this.phaseAppearanceCounts = [0,0,0,0,0,0,0,0,0,0,0];
         
         this.leftRectangle = document.querySelector('#left-rectangle');
         this.rightRectangle = document.querySelector('#right-rectangle');
@@ -285,6 +288,9 @@ AFRAME.registerComponent('sphere-manager', {
         this.appearancesPerSphere = 4;
         this.totalTrials = 44;
         this.trialsSwitched = true;
+        this.fModeActive = true;
+        this.currentPhase = 0;
+        this.phaseAppearanceCounts = [0,0,0,0,0,0,0,0,0,0,0];
         
         const dataManager = document.querySelector('#data-manager').components['data-manager'];
         dataManager.updateTotalTrials(44);
@@ -299,16 +305,33 @@ AFRAME.registerComponent('sphere-manager', {
     
     selectRandomSphere: function() {
         let availablePositions = [];
-        for (let i = 0; i < 11; i++) {
-            if (this.appearanceCounts[i] < this.appearancesPerSphere && i !== this.lastSelectedPosition) {
-                availablePositions.push(i);
-            }
-        }
         
-        if (availablePositions.length === 0) {
+        if (this.fModeActive) {
             for (let i = 0; i < 11; i++) {
-                if (this.appearanceCounts[i] < this.appearancesPerSphere) {
+                if (this.phaseAppearanceCounts[i] < 2 && i !== this.lastSelectedPosition) {
                     availablePositions.push(i);
+                }
+            }
+            
+            if (availablePositions.length === 0) {
+                for (let i = 0; i < 11; i++) {
+                    if (this.phaseAppearanceCounts[i] < 2) {
+                        availablePositions.push(i);
+                    }
+                }
+            }
+        } else {
+            for (let i = 0; i < 11; i++) {
+                if (this.appearanceCounts[i] < this.appearancesPerSphere && i !== this.lastSelectedPosition) {
+                    availablePositions.push(i);
+                }
+            }
+            
+            if (availablePositions.length === 0) {
+                for (let i = 0; i < 11; i++) {
+                    if (this.appearanceCounts[i] < this.appearancesPerSphere) {
+                        availablePositions.push(i);
+                    }
                 }
             }
         }
@@ -331,6 +354,15 @@ AFRAME.registerComponent('sphere-manager', {
             const sphereIndex = this.allSpheres.indexOf(this.activeSphere);
             this.appearanceCounts[sphereIndex]++;
             this.totalAppearances++;
+            
+            if (this.fModeActive) {
+                this.phaseAppearanceCounts[sphereIndex]++;
+                
+                if (this.totalAppearances === 22) {
+                    this.currentPhase = 1;
+                    this.phaseAppearanceCounts = [0,0,0,0,0,0,0,0,0,0,0];
+                }
+            }
             
             const scoreManager = document.querySelector('#score-display').components['score-manager'];
             scoreManager.updateProgress(this.totalAppearances, this.totalTrials);
