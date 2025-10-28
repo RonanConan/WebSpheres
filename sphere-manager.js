@@ -108,6 +108,10 @@ AFRAME.registerComponent('sphere-manager', {
                 audioManager.playCalibrationSound('switch');
                 this.switchToShortSession();
             }
+            if (event.code === 'KeyF') {
+                audioManager.playCalibrationSound('switch');
+                this.setTwoReachesPerSphere();
+            }
         });
     },
     
@@ -273,6 +277,17 @@ AFRAME.registerComponent('sphere-manager', {
         
         const dataManager = document.querySelector('#data-manager').components['data-manager'];
         dataManager.updateTotalTrials(110);
+    },
+    
+    setTwoReachesPerSphere: function() {
+        if (this.trialsSwitched) return;
+        
+        this.appearancesPerSphere = 4;
+        this.totalTrials = 44;
+        this.trialsSwitched = true;
+        
+        const dataManager = document.querySelector('#data-manager').components['data-manager'];
+        dataManager.updateTotalTrials(44);
     },
     
     getHandPosition: function(handController) {
