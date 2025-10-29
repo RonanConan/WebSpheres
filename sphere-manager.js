@@ -115,6 +115,10 @@ AFRAME.registerComponent('sphere-manager', {
                 audioManager.playCalibrationSound('switch');
                 this.setTwoReachesPerSphere();
             }
+            if (event.code === 'KeyZ') {
+                audioManager.playCalibrationSound('switch');
+                this.skipTarget();
+            }
         });
     },
     
@@ -294,6 +298,59 @@ AFRAME.registerComponent('sphere-manager', {
         
         const dataManager = document.querySelector('#data-manager').components['data-manager'];
         dataManager.updateTotalTrials(44);
+    },
+    
+    skipTarget: function() {
+        // Only skip if we have an active trial
+        if (!this.activeSphere) {
+            return;
+        }
+        
+        if (this.currentState !== 'waiting-to-appear' && this.currentState !== 'visible') {
+            return;
+        }
+        
+        const sphereIndex = this.allSpheres.indexOf(this.activeSphere);
+        
+        // If waiting-to-appear, counts haven't been incremented yet
+        if (this.currentState === 'waiting-to-appear') {
+            this.appearanceCounts[sphereIndex]++;
+            this.totalAppearances++;
+            
+            if (this.fModeActive) {
+                this.phaseAppearanceCounts[sphereIndex]++;
+                
+                if (this.totalAppearances === 22) {
+                    this.currentPhase = 1;
+                    this.phaseAppearanceCounts = [0,0,0,0,0,0,0,0,0,0,0];
+                }
+            }
+            
+            const scoreManager = document.querySelector('#score-display').components['score-manager'];
+            scoreManager.updateProgress(this.totalAppearances, this.totalTrials);
+        }
+        
+        // Record skipped trial
+        const dataManager = document.querySelector('#data-manager').components['data-manager'];
+        dataManager.recordTrial(sphereIndex, 'NA', 0, 'SKIP', 0);
+        
+        // Clean up timers
+        if (this.appearTimer) {
+            clearTimeout(this.appearTimer);
+            this.appearTimer = null;
+        }
+        if (this.disappearTimer) {
+            clearTimeout(this.disappearTimer);
+            this.disappearTimer = null;
+        }
+        
+        // Hide sphere if visible
+        this.activeSphere.setAttribute('visible', false);
+        
+        // Reset to invisible state
+        this.activeSphere = null;
+        this.decisionTimeRecorded = false;
+        this.currentState = 'invisible';
     },
     
     getHandPosition: function(handController) {
