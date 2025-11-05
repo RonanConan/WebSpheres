@@ -16,6 +16,7 @@ AFRAME.registerComponent('sphere-manager', {
         this.totalTrials = 11 * this.appearancesPerSphere;
         this.trialsSwitched = false;
         this.fModeActive = false;
+        this.bModeActive = false;
         this.currentPhase = 0;
         this.phaseAppearanceCounts = [0,0,0,0,0,0,0,0,0,0,0];
         
@@ -114,6 +115,10 @@ AFRAME.registerComponent('sphere-manager', {
             if (event.code === 'KeyF') {
                 audioManager.playCalibrationSound('switch');
                 this.setTwoReachesPerSphere();
+            }
+            if (event.code === 'KeyB') {
+                audioManager.playCalibrationSound('switch');
+                this.setBlockMode();
             }
             if (event.code === 'KeyZ') {
                 audioManager.playCalibrationSound('switch');
@@ -300,6 +305,19 @@ AFRAME.registerComponent('sphere-manager', {
         dataManager.updateTotalTrials(44);
     },
     
+    setBlockMode: function() {
+        if (this.trialsSwitched) return;
+        
+        this.appearancesPerSphere = 2;
+        this.totalTrials = 110;
+        this.trialsSwitched = true;
+        this.bModeActive = true;
+        this.phaseAppearanceCounts = [0,0,0,0,0,0,0,0,0,0,0];
+        
+        const dataManager = document.querySelector('#data-manager').components['data-manager'];
+        dataManager.updateTotalTrials(110);
+    },
+    
     skipTarget: function() {
         // Only skip if we have an active trial
         if (!this.activeSphere) {
@@ -317,11 +335,15 @@ AFRAME.registerComponent('sphere-manager', {
             this.appearanceCounts[sphereIndex]++;
             this.totalAppearances++;
             
-            if (this.fModeActive) {
+            if (this.fModeActive || this.bModeActive) {
                 this.phaseAppearanceCounts[sphereIndex]++;
                 
-                if (this.totalAppearances === 22) {
+                if (this.fModeActive && this.totalAppearances === 22) {
                     this.currentPhase = 1;
+                    this.phaseAppearanceCounts = [0,0,0,0,0,0,0,0,0,0,0];
+                }
+                
+                if (this.bModeActive && this.totalAppearances % 22 === 0) {
                     this.phaseAppearanceCounts = [0,0,0,0,0,0,0,0,0,0,0];
                 }
             }
@@ -363,7 +385,7 @@ AFRAME.registerComponent('sphere-manager', {
     selectRandomSphere: function() {
         let availablePositions = [];
         
-        if (this.fModeActive) {
+        if (this.fModeActive || this.bModeActive) {
             for (let i = 0; i < 11; i++) {
                 if (this.phaseAppearanceCounts[i] < 2 && i !== this.lastSelectedPosition) {
                     availablePositions.push(i);
@@ -412,11 +434,15 @@ AFRAME.registerComponent('sphere-manager', {
             this.appearanceCounts[sphereIndex]++;
             this.totalAppearances++;
             
-            if (this.fModeActive) {
+            if (this.fModeActive || this.bModeActive) {
                 this.phaseAppearanceCounts[sphereIndex]++;
                 
-                if (this.totalAppearances === 22) {
+                if (this.fModeActive && this.totalAppearances === 22) {
                     this.currentPhase = 1;
+                    this.phaseAppearanceCounts = [0,0,0,0,0,0,0,0,0,0,0];
+                }
+                
+                if (this.bModeActive && this.totalAppearances % 22 === 0) {
                     this.phaseAppearanceCounts = [0,0,0,0,0,0,0,0,0,0,0];
                 }
             }
