@@ -213,7 +213,7 @@ AFRAME.registerComponent('sphere-manager', {
                     const leftPos = this.getHandPosition(leftController);
                     const rightPos = this.getHandPosition(rightController);
                     if (leftPos && rightPos && this.isInsideRectangle(leftPos, leftRectanglePos) && this.isInsideRectangle(rightPos, rightRectanglePos)) {
-                        if (!this.appearTimer) {
+                        if (!this.appearTimer && this.totalAppearances < this.totalTrials) {
                             this.selectRandomSphere();
                             if (this.activeSphere) {
                                 this.startAppearTimer();
