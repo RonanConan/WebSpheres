@@ -20,7 +20,7 @@ AFRAME.registerComponent('sphere-manager', {
         this.currentPhase = 0;
         this.phaseAppearanceCounts = [0,0,0,0,0,0,0,0,0,0,0];
 
-        // NEW: joint cachess + margin for collision thickness
+        // NEW: joint caches + margin for collision thickness
         this.leftJoints = null;
         this.rightJoints = null;
         this.collisionMargin = 0.02; // meters; tune if needed
@@ -48,8 +48,6 @@ AFRAME.registerComponent('sphere-manager', {
 
     // NEW: handle extras-ready and store joints map
     onExtrasReady: function (evt) {
-        console.log("!!! hand-tracking-extras-ready event FIRED for hand:", evt.target.getAttribute('hand-tracking-controls').hand);
-        
         const joints = evt?.detail?.data?.joints;
         if (!joints) return;
         const handAttr = evt.target.getAttribute('hand-tracking-controls');
@@ -206,8 +204,8 @@ AFRAME.registerComponent('sphere-manager', {
     
     updateTextPositions: function() {
         if (this.scoreDisplay && this.progressDisplay) {
-            this.scoreDisplay.setAttribute('position', `0 ${this.height + 0.2} -1.2`);
-            this.progressDisplay.setAttribute('position', `0 ${this.height + 0.1} -1.2`);
+            this.scoreDisplay.setAttribute('position', `0 ${this.height + 0.6} -1.2`);
+            this.progressDisplay.setAttribute('position', `0 ${this.height + 0.4} -1.2`);
         }
     },
     
@@ -216,124 +214,31 @@ AFRAME.registerComponent('sphere-manager', {
             let angle = -40 + (i * 8);
             let x = this.radius * Math.sin(angle * Math.PI / 180);
             let z = -this.radius * Math.cos(angle * Math.PI / 180);
+            
             this.allSpheres[i].setAttribute('position', `${x} ${this.height} ${z}`);
         }
     },
     
     resumeGame: function() {
         this.isPaused = false;
+        this.currentState = 'invisible';
     },
     
-    tick: function() {
-        if (!this.isPaused) {
-            const leftRectanglePos = this.leftRectangle.getAttribute('position');
-            const rightRectanglePos = this.rightRectangle.getAttribute('position');
-            const leftController = this.leftController;
-            const rightController = this.rightController;
-            
-            if (this.currentState === 'invisible') {
-                if (leftController && rightController) {
-                    const leftPos = this.getHandPosition(leftController);
-                    const rightPos = this.getHandPosition(rightController);
-                    if (leftPos && rightPos && this.isInsideRectangle(leftPos, leftRectanglePos) && this.isInsideRectangle(rightPos, rightRectanglePos)) {
-                        if (!this.appearTimer && this.totalAppearances < this.totalTrials) {
-                            this.selectRandomSphere();
-                            if (this.activeSphere) {
-                                this.startAppearTimer();
-                                this.currentState = 'waiting-to-appear';
-                            }
-                        }
-                    }
-                }
-            }
-            
-            if (this.currentState === 'waiting-to-appear') {
-                if (leftController && rightController) {
-                    const leftPos = this.getHandPosition(leftController);
-                    const rightPos = this.getHandPosition(rightController);
-                    if (!leftPos || !rightPos || !this.isInsideRectangle(leftPos, leftRectanglePos) || !this.isInsideRectangle(rightPos, rightRectanglePos)) {
-                        clearTimeout(this.appearTimer);
-                        this.appearTimer = null;
-                        this.activeSphere = null;
-                        this.currentState = 'invisible';
-                    }
-                }
-            }
-            
-            if (this.currentState === 'visible' && this.activeSphere) {
-                const spherePos = this.activeSphere.getAttribute('position');
-                const leftPos = this.getHandPosition(leftController);
-                const rightPos = this.getHandPosition(rightController);
-
-                // NEW: full-hand hit test (fallback to fingertip if joints not ready)
-                let leftHit = (this.isHandIntersectingSphere('left', spherePos)) ||
-                              (leftPos && this.isInsideSphere(leftPos, spherePos));
-                let rightHit = (this.isHandIntersectingSphere('right', spherePos)) ||
-                               (rightPos && this.isInsideSphere(rightPos, spherePos));
-                
-                if (!this.decisionTimeRecorded && leftPos && rightPos) {
-                    const leftInRect = this.isInsideRectangle(leftPos, leftRectanglePos);
-                    const rightInRect = this.isInsideRectangle(rightPos, rightRectanglePos);
-                    
-                    if (!leftInRect || !rightInRect) {
-                        const dataManager = document.querySelector('#data-manager').components['data-manager'];
-                        dataManager.stopDecisionTimer();
-                        this.decisionTimeRecorded = true;
-                    }
-                }
-                
-                if ((leftHit || rightHit) && !this.disappearTimer) {
-                    this.activeSphere.setAttribute('color', '#0000ff');
-                    
-                    const handUsed = leftHit ? 'LEFT' : 'RIGHT';
-                    
-                    const scoreManager = document.querySelector('#score-display').components['score-manager'];
-                    const hitResult = scoreManager.calculateHitPoints(handUsed);
-                    scoreManager.addPoints(hitResult.points);
-                    
-                    // Create floating damage number
-                    this.createFloatingNumber(spherePos, hitResult.points, hitResult.hitType);
-                    
-                    const sphereIndex = this.allSpheres.indexOf(this.activeSphere);
-                    const dataManager = document.querySelector('#data-manager').components['data-manager'];
-                    dataManager.calculateAndStoreMovementTime();
-                    dataManager.recordTrial(sphereIndex, handUsed, hitResult.points, hitResult.hitType, dataManager.currentDecisionTime);
-                    
-                    this.startDisappearTimer();
-                    this.currentState = 'waiting-to-disappear';
-                }
-            }
+    pauseGame: function() {
+        this.isPaused = true;
+        if (this.appearTimer) {
+            clearTimeout(this.appearTimer);
+            this.appearTimer = null;
         }
+        if (this.disappearTimer) {
+            clearTimeout(this.disappearTimer);
+            this.disappearTimer = null;
+        }
+        if (this.activeSphere) {
+            this.activeSphere.setAttribute('visible', false);
+        }
+        this.currentState = 'invisible';
     },
-
-    // NEW: iterate joints for a given hand and test sphere intersection
-    isHandIntersectingSphere: (function () {
-        const posV = new THREE.Vector3();
-        return function (side, spherePos) {
-            const joints = side === 'left' ? this.leftJoints : this.rightJoints;
-            if (!joints || !this.activeSphere) return false;
-
-            const targetRadius = parseFloat(this.activeSphere.getAttribute('radius')) || 0.05;
-            const extra = this.collisionMargin;
-
-            for (const key in joints) {
-                const j = joints[key];
-                if (!j || !j.isValid()) continue;
-                j.getPosition(posV);
-                const jr = (typeof j.getRadius === 'function') ? (j.getRadius() || 0) : 0;
-
-                const dx = posV.x - spherePos.x;
-                const dy = posV.y - spherePos.y;
-                const dz = posV.z - spherePos.z;
-                const dist = Math.sqrt(dx*dx + dy*dy + dz*dz);
-
-                if (dist <= targetRadius + jr + extra) {
-                    return true;
-                }
-            }
-            return false;
-        };
-    })(),
     
     switchToShortSession: function() {
         if (this.trialsSwitched) return;
@@ -535,5 +440,109 @@ AFRAME.registerComponent('sphere-manager', {
         return Math.abs(handPos.x - rectanglePos.x) < width &&
                Math.abs(handPos.y - rectanglePos.y) < height &&
                Math.abs(handPos.z - rectanglePos.z) < depth;
+    },
+
+    // NEW: Check collisions with all hand joints
+    checkJointCollisions: function(joints, spherePos, homePos) {
+        if (!joints) return false;
+        
+        const jointNames = [
+            'Wrist',
+            'T_Tip', 'T_Proximal', 'T_Distal', 'T_Intermediate', 'T_Metacarpal',
+            'I_Tip', 'I_Proximal', 'I_Distal', 'I_Intermediate', 'I_Metacarpal',
+            'M_Tip', 'M_Proximal', 'M_Distal', 'M_Intermediate', 'M_Metacarpal',
+            'R_Tip', 'R_Proximal', 'R_Distal', 'R_Intermediate', 'R_Metacarpal',
+            'L_Tip', 'L_Proximal', 'L_Distal', 'L_Intermediate', 'L_Metacarpal'
+        ];
+        
+        const jointPos = new THREE.Vector3();
+        
+        for (let jointName of jointNames) {
+            const joint = joints[jointName];
+            if (!joint || !joint.isValid()) continue;
+            
+            joint.getPosition(jointPos);
+            
+            // Check if joint is colliding with sphere AND hand is in home position
+            if (this.isInsideSphere(jointPos, spherePos) && this.isInsideRectangle(jointPos, homePos)) {
+                return true;
+            }
+        }
+        
+        return false;
+    },
+
+    // NEW: Handle hit logic (extracted for reuse)
+    handleHit: function(handUsed, spherePos, homePos) {
+        if (this.currentState !== 'visible') return;
+        
+        // Record decision time
+        if (!this.decisionTimeRecorded) {
+            const dataManager = document.querySelector('#data-manager').components['data-manager'];
+            dataManager.stopDecisionTimer();
+            this.decisionTimeRecorded = true;
+        }
+        
+        // Calculate points and play audio
+        const scoreManager = document.querySelector('#score-display').components['score-manager'];
+        const result = scoreManager.calculateHitPoints(handUsed);
+        scoreManager.addPoints(result.points);
+        
+        // Visual feedback
+        this.activeSphere.setAttribute('color', result.hitType === 'critical' ? '#FFD700' : '#00ff00');
+        this.createFloatingNumber(spherePos, result.points, result.hitType);
+        
+        // Record trial data
+        const sphereIndex = this.allSpheres.indexOf(this.activeSphere);
+        const dataManager = document.querySelector('#data-manager').components['data-manager'];
+        dataManager.calculateAndStoreMovementTime();
+        dataManager.recordTrial(
+            sphereIndex,
+            handUsed,
+            result.points,
+            result.hitType,
+            dataManager.currentDecisionTime
+        );
+        
+        // Transition to cooldown
+        this.currentState = 'cooldown';
+        this.startDisappearTimer();
+    },
+
+    // NEW: Main collision detection loop
+    tick: function() {
+        if (this.isPaused || this.currentState !== 'visible' || !this.activeSphere) {
+            return;
+        }
+        
+        const spherePos = this.activeSphere.getAttribute('position');
+        const leftRectPos = this.leftRectangle.getAttribute('position');
+        const rightRectPos = this.rightRectangle.getAttribute('position');
+        
+        // Try new joint-based detection first (preferred)
+        if (this.leftJoints || this.rightJoints) {
+            const leftCollision = this.checkJointCollisions(this.leftJoints, spherePos, leftRectPos);
+            const rightCollision = this.checkJointCollisions(this.rightJoints, spherePos, rightRectPos);
+            
+            if (leftCollision) {
+                this.handleHit('LEFT', spherePos, leftRectPos);
+                return;
+            }
+            if (rightCollision) {
+                this.handleHit('RIGHT', spherePos, rightRectPos);
+                return;
+            }
+        } 
+        // Fallback to old index-tip detection if extras not ready
+        else {
+            const leftPos = this.getHandPosition(this.leftController);
+            const rightPos = this.getHandPosition(this.rightController);
+            
+            if (leftPos && this.isInsideSphere(leftPos, spherePos) && this.isInsideRectangle(leftPos, leftRectPos)) {
+                this.handleHit('LEFT', spherePos, leftRectPos);
+            } else if (rightPos && this.isInsideSphere(rightPos, spherePos) && this.isInsideRectangle(rightPos, rightRectPos)) {
+                this.handleHit('RIGHT', spherePos, rightRectPos);
+            }
+        }
     }
 });
