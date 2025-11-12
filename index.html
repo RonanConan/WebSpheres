@@ -2,6 +2,10 @@
 <html>
 <head>
     <script src="https://aframe.io/releases/1.7.0/aframe.min.js"></script>
+
+    <!-- extras: expose all hand joints -->
+    <script src="aframe-hand-tracking-controls-extras-full.js"></script>
+
     <script src="audio-manager.js"></script>
     <script src="data-manager.js"></script>
     <script src="score-manager.js"></script>
@@ -49,9 +53,10 @@
             geometry="width: 0.24; height: 0.09; depth: 0.18"
             material="color: #00ff00; transparent: true; opacity: 0.3">
         </a-box>
-        
-        <a-entity hand-tracking-controls="hand: left"></a-entity>
-        <a-entity hand-tracking-controls="hand: right"></a-entity>
+
+        <!-- unchanged controls, just add hand-tracking-extras -->
+        <a-entity hand-tracking-controls="hand: left" hand-tracking-extras></a-entity>
+        <a-entity hand-tracking-controls="hand: right" hand-tracking-extras></a-entity>
         
         <a-entity meta-touch-controls="hand: right; model: false"></a-entity>
     </a-scene>
