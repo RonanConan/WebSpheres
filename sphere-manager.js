@@ -29,6 +29,7 @@ AFRAME.registerComponent('sphere-manager', {
         this.hitboxDepth = 0.06;
         this.hitboxOffsetY = 0.05;
         this.hitboxOffsetZ = 0.02;
+        this.hitboxRotationX = 90;  // Rotation around X axis (pitch)
         this.hitboxReady = false;  // NEW: Track initialization status
         this.HITBOX_INIT_CHECK_INTERVAL = 100;  // NEW: Check every 100ms
         
@@ -58,6 +59,7 @@ AFRAME.registerComponent('sphere-manager', {
                 this.leftHitbox.setAttribute('material', 'transparent: true; opacity: 0.3');
                 this.leftHitbox.setAttribute('visible', this.hitboxVisible);
                 this.leftHitbox.setAttribute('position', `0 ${this.hitboxOffsetY} ${this.hitboxOffsetZ}`);
+                this.leftHitbox.setAttribute('rotation', `${this.hitboxRotationX} 0 0`);
                 this.leftController.appendChild(this.leftHitbox);
                 console.log('Left hitbox created');
             }
@@ -72,6 +74,7 @@ AFRAME.registerComponent('sphere-manager', {
                 this.rightHitbox.setAttribute('material', 'transparent: true; opacity: 0.3');
                 this.rightHitbox.setAttribute('visible', this.hitboxVisible);
                 this.rightHitbox.setAttribute('position', `0 ${this.hitboxOffsetY} ${this.hitboxOffsetZ}`);
+                this.rightHitbox.setAttribute('rotation', `${this.hitboxRotationX} 0 0`);
                 this.rightController.appendChild(this.rightHitbox);
                 console.log('Right hitbox created');
             }
@@ -128,6 +131,19 @@ AFRAME.registerComponent('sphere-manager', {
         }
         
         console.log(`Hitbox: W=${this.hitboxWidth.toFixed(3)}m, H=${this.hitboxHeight.toFixed(3)}m, D=${this.hitboxDepth.toFixed(3)}m`);
+    },
+    
+    adjustHitboxRotation: function(amount) {
+        this.hitboxRotationX += amount;
+        
+        if (this.leftHitbox) {
+            this.leftHitbox.setAttribute('rotation', `${this.hitboxRotationX} 0 0`);
+        }
+        if (this.rightHitbox) {
+            this.rightHitbox.setAttribute('rotation', `${this.hitboxRotationX} 0 0`);
+        }
+        
+        console.log(`Hitbox rotation: ${this.hitboxRotationX}°`);
     },
     
     createSpheres: function() {
@@ -257,6 +273,14 @@ AFRAME.registerComponent('sphere-manager', {
             if (event.code === 'Quote') {  // '
                 audioManager.playCalibrationSound('switch');
                 this.adjustHitboxSize('depth', 0.01);
+            }
+            if (event.code === 'Comma') {  // ,
+                audioManager.playCalibrationSound('switch');
+                this.adjustHitboxRotation(-5);
+            }
+            if (event.code === 'Period') {  // .
+                audioManager.playCalibrationSound('switch');
+                this.adjustHitboxRotation(5);
             }
         });
     },
