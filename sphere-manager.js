@@ -48,6 +48,8 @@ AFRAME.registerComponent('sphere-manager', {
 
     // NEW: handle extras-ready and store joints map
     onExtrasReady: function (evt) {
+        console.log("!!! hand-tracking-extras-ready event FIRED for hand:", evt.target.getAttribute('hand-tracking-controls').hand);
+        
         const joints = evt?.detail?.data?.joints;
         if (!joints) return;
         const handAttr = evt.target.getAttribute('hand-tracking-controls');
