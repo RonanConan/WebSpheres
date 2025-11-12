@@ -20,10 +20,9 @@ AFRAME.registerComponent('sphere-manager', {
         this.currentPhase = 0;
         this.phaseAppearanceCounts = [0,0,0,0,0,0,0,0,0,0,0];
 
-        // NEW: joint caches + margin for collision thickness
         this.leftJoints = null;
         this.rightJoints = null;
-        this.collisionMargin = 0.02; // meters; tune if needed
+        this.collisionMargin = 0.02;
 
         this.leftRectangle = document.querySelector('#left-rectangle');
         this.rightRectangle = document.querySelector('#right-rectangle');
@@ -32,7 +31,6 @@ AFRAME.registerComponent('sphere-manager', {
         this.scoreDisplay = document.querySelector('#score-display');
         this.progressDisplay = document.querySelector('#progress-display');
 
-        // NEW: capture joints when extras become ready
         this._onExtrasReady = this.onExtrasReady.bind(this);
         if (this.leftController) {
             this.leftController.addEventListener('hand-tracking-extras-ready', this._onExtrasReady);
@@ -46,7 +44,6 @@ AFRAME.registerComponent('sphere-manager', {
         this.updateTextPositions();
     },
 
-    // NEW: handle extras-ready and store joints map
     onExtrasReady: function (evt) {
         const joints = evt?.detail?.data?.joints;
         if (!joints) return;
@@ -279,13 +276,11 @@ AFRAME.registerComponent('sphere-manager', {
     },
     
     skipTarget: function() {
-        // Only skip if we have an active trial
         if (!this.activeSphere) return;
         if (this.currentState !== 'waiting-to-appear' && this.currentState !== 'visible') return;
         
         const sphereIndex = this.allSpheres.indexOf(this.activeSphere);
         
-        // If waiting-to-appear, counts haven't been incremented yet
         if (this.currentState === 'waiting-to-appear') {
             this.appearanceCounts[sphereIndex]++;
             this.totalAppearances++;
@@ -307,11 +302,9 @@ AFRAME.registerComponent('sphere-manager', {
             scoreManager.updateProgress(this.totalAppearances, this.totalTrials);
         }
         
-        // Record skipped trial
         const dataManager = document.querySelector('#data-manager').components['data-manager'];
         dataManager.recordTrial(sphereIndex, 'NA', 0, 'SKIP', 0);
         
-        // Clean up timers
         if (this.appearTimer) {
             clearTimeout(this.appearTimer);
             this.appearTimer = null;
@@ -321,10 +314,8 @@ AFRAME.registerComponent('sphere-manager', {
             this.disappearTimer = null;
         }
         
-        // Hide sphere if visible
         this.activeSphere.setAttribute('visible', false);
         
-        // Reset to invisible state
         this.activeSphere = null;
         this.decisionTimeRecorded = false;
         this.currentState = 'invisible';
@@ -422,7 +413,6 @@ AFRAME.registerComponent('sphere-manager', {
         }, 300);
     },
     
-    // fingertip (legacy / fallback)
     isInsideSphere: function(handPos, spherePos) {
         const hitRadius = 0.08;
         const distance = Math.sqrt(
@@ -442,8 +432,7 @@ AFRAME.registerComponent('sphere-manager', {
                Math.abs(handPos.z - rectanglePos.z) < depth;
     },
 
-    // NEW: Check collisions with all hand joints
-    checkJointCollisions: function(joints, spherePos, homePos) {
+    checkJointCollisions: function(joints, spherePos) {
         if (!joints) return false;
         
         const jointNames = [
@@ -463,8 +452,8 @@ AFRAME.registerComponent('sphere-manager', {
             
             joint.getPosition(jointPos);
             
-            // Check if joint is colliding with sphere AND hand is in home position
-            if (this.isInsideSphere(jointPos, spherePos) && this.isInsideRectangle(jointPos, homePos)) {
+            // Only check if joint touches sphere
+            if (this.isInsideSphere(jointPos, spherePos)) {
                 return true;
             }
         }
@@ -472,27 +461,22 @@ AFRAME.registerComponent('sphere-manager', {
         return false;
     },
 
-    // NEW: Handle hit logic (extracted for reuse)
-    handleHit: function(handUsed, spherePos, homePos) {
+    handleHit: function(handUsed, spherePos) {
         if (this.currentState !== 'visible') return;
         
-        // Record decision time
         if (!this.decisionTimeRecorded) {
             const dataManager = document.querySelector('#data-manager').components['data-manager'];
             dataManager.stopDecisionTimer();
             this.decisionTimeRecorded = true;
         }
         
-        // Calculate points and play audio
         const scoreManager = document.querySelector('#score-display').components['score-manager'];
         const result = scoreManager.calculateHitPoints(handUsed);
         scoreManager.addPoints(result.points);
         
-        // Visual feedback
         this.activeSphere.setAttribute('color', result.hitType === 'critical' ? '#FFD700' : '#00ff00');
         this.createFloatingNumber(spherePos, result.points, result.hitType);
         
-        // Record trial data
         const sphereIndex = this.allSpheres.indexOf(this.activeSphere);
         const dataManager = document.querySelector('#data-manager').components['data-manager'];
         dataManager.calculateAndStoreMovementTime();
@@ -504,44 +488,50 @@ AFRAME.registerComponent('sphere-manager', {
             dataManager.currentDecisionTime
         );
         
-        // Transition to cooldown
         this.currentState = 'cooldown';
         this.startDisappearTimer();
     },
 
-    // NEW: Main collision detection loop
     tick: function() {
-        if (this.isPaused || this.currentState !== 'visible' || !this.activeSphere) {
-            return;
+        if (this.isPaused) return;
+        
+        // State machine for sphere appearance
+        if (this.currentState === 'invisible' && this.totalAppearances < this.totalTrials) {
+            this.selectRandomSphere();
+            if (this.activeSphere) {
+                this.currentState = 'waiting-to-appear';
+                this.startAppearTimer();
+            }
         }
         
-        const spherePos = this.activeSphere.getAttribute('position');
-        const leftRectPos = this.leftRectangle.getAttribute('position');
-        const rightRectPos = this.rightRectangle.getAttribute('position');
-        
-        // Try new joint-based detection first (preferred)
-        if (this.leftJoints || this.rightJoints) {
-            const leftCollision = this.checkJointCollisions(this.leftJoints, spherePos, leftRectPos);
-            const rightCollision = this.checkJointCollisions(this.rightJoints, spherePos, rightRectPos);
+        // Collision detection only when sphere is visible
+        if (this.currentState === 'visible' && this.activeSphere) {
+            const spherePos = this.activeSphere.getAttribute('position');
             
-            if (leftCollision) {
-                this.handleHit('LEFT', spherePos, leftRectPos);
-                return;
-            }
-            if (rightCollision) {
-                this.handleHit('RIGHT', spherePos, rightRectPos);
-                return;
-            }
-        } 
-        // Fallback to old index-tip detection if extras not ready
-        else {
-            const leftPos = this.getHandPosition(this.leftController);
-            const rightPos = this.getHandPosition(this.rightController);
-            
-            if (leftPos && this.isInsideSphere(leftPos, spherePos) && this.isInsideRectangle(leftPos, leftRectPos)) {
-                this.handleHit('LEFT', spherePos, leftRectPos);
-            } else if (rightPos && this.isInsideSphere(rightPos, spherePos) && this.isInsideRectangle(rightPos, rightRectPos)) {
-                this.handleHit('RIGHT', spherePos, rightRectPos);
+            // Try new joint-based detection first (preferred)
+            if (this.leftJoints || this.rightJoints) {
+                const leftCollision = this.checkJointCollisions(this.leftJoints, spherePos);
+                const rightCollision = this.checkJointCollisions(this.rightJoints, spherePos);
+                
+                if (leftCollision) {
+                    this.handleHit('LEFT', spherePos);
+                    return;
+                }
+                if (rightCollision) {
+                    this.handleHit('RIGHT', spherePos);
+                    return;
+                }
+            } 
+            // Fallback to old index-tip detection if extras not ready
+            else {
+                const leftPos = this.getHandPosition(this.leftController);
+                const rightPos = this.getHandPosition(this.rightController);
+                
+                if (leftPos && this.isInsideSphere(leftPos, spherePos)) {
+                    this.handleHit('LEFT', spherePos);
+                } else if (rightPos && this.isInsideSphere(rightPos, spherePos)) {
+                    this.handleHit('RIGHT', spherePos);
+                }
             }
         }
     }
