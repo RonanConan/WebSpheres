@@ -1145,7 +1145,7 @@ var _default = AFRAME.registerComponent("hand-tracking-extras", {
       }
 
       var trackedControlsWebXR = handControls.trackedControls;
-      var controller = handControls.controllerFound; // Use controllerFound
+      var controller = trackedControlsWebXR && trackedControlsWebXR.controller; // Use controllerFound
       // --- *** END FIX *** ---
 
       if (!trackedControlsWebXR) {
