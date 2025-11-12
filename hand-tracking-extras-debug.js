@@ -20,7 +20,7 @@ AFRAME.registerComponent("hand-tracking-extras", {
       
       var trackedControlsWebXR = this.el.components['tracked-controls-webxr'];
       if (!trackedControlsWebXR) {
-        console.warn("⚠️ No tracked-controls-webxr found");
+        console.warn("⚠️ No tracked-controls-webxr found!");
         return;
       }
       
