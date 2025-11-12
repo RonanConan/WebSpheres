@@ -1129,17 +1129,18 @@ var _default = AFRAME.registerComponent("hand-tracking-extras", {
     this.el.addEventListener("exit-vr", this.pause);
   },
   tick: function () {
-    return function () {
-      if (this.isPaused) return;
-      var controller = this.el.components['tracked-controls'] && this.el.components['tracked-controls'].controller;
-      var trackedControlsWebXR = this.el.components['tracked-controls-webxr'];
-      if (!trackedControlsWebXR) return;
-      var referenceSpace = trackedControlsWebXR.system.referenceSpace;
-      var frame = this.el.sceneEl.frame;
-
-      if (!controller || !frame || !referenceSpace) {
-        return;
-      }
+  return function () {
+    if (this.isPaused) return;
+    var trackedControlsWebXR = this.el.components['tracked-controls-webxr'];
+    if (!trackedControlsWebXR) return;
+    var controller =
+      (trackedControlsWebXR.controller || trackedControlsWebXR.inputSource) ||
+      (this.el.components['tracked-controls'] && this.el.components['tracked-controls'].controller);
+    var referenceSpace = trackedControlsWebXR.system.referenceSpace;
+    var frame = this.el.sceneEl.frame;
+    if (!controller || !controller.hand || !frame || !referenceSpace) {
+      return;
+    }
 
       if (!this.HandData) {
         this.HandData = new _handdata.HandData();
