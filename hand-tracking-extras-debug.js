@@ -1,78 +1,99 @@
 AFRAME.registerComponent("hand-tracking-extras", {
   init: function () {
-    console.log("🟢 hand-tracking-extras INIT called for:", this.el);
-    console.log("🔍 Available components on this element:", Object.keys(this.el.components));
+    console.log("🟢 hand-tracking-extras INIT called");
     this.el.addEventListener("enter-vr", this.play.bind(this));
     this.el.addEventListener("exit-vr", this.pause.bind(this));
-    this.debugLogged = false;
+    this.diagnosticDone = false;
   },
   
   tick: function () {
     return function () {
-      if (this.isPaused) {
+      if (this.isPaused) return;
+      
+      // Only run diagnostic ONCE when in VR
+      if (!this.diagnosticDone) {
+        var renderer = this.el.sceneEl.renderer;
+        if (renderer && renderer.xr && renderer.xr.getSession()) {
+          this.runDiagnostic();
+          this.diagnosticDone = true;
+        }
         return;
       }
       
-      // Only log once to avoid spam
-      if (!this.debugLogged) {
-        console.log("📋 All components on hand element:", Object.keys(this.el.components));
-        this.debugLogged = true;
-      }
+      // After diagnostic, try to get hand tracking
+      var frame = this.el.sceneEl.frame;
+      var renderer = this.el.sceneEl.renderer;
       
+      if (!frame || !renderer || !renderer.xr) return;
+      
+      var session = renderer.xr.getSession();
+      if (!session) return;
+      
+      var referenceSpace = renderer.xr.getReferenceSpace();
+      if (!referenceSpace) return;
+      
+      // Find the hand input source
       var handTrackingControls = this.el.components['hand-tracking-controls'];
+      if (!handTrackingControls) return;
       
-      if (!handTrackingControls) {
-        console.warn("⚠️ No hand-tracking-controls found");
-        return;
+      var targetHandedness = handTrackingControls.data.hand;
+      var handInputSource = null;
+      
+      for (let source of session.inputSources) {
+        if (source.handedness === targetHandedness && source.hand) {
+          handInputSource = source;
+          break;
+        }
       }
       
-      console.log("🔍 hand-tracking-controls object:", handTrackingControls);
-      console.log("🔍 hand-tracking-controls.controller:", handTrackingControls.controller);
+      if (!handInputSource) return;
       
-      // Check if we can access the controller through the hand-tracking-controls
-      if (handTrackingControls.controller && handTrackingControls.controller.hand) {
-        console.log("✅ Found controller.hand!");
-        
-        var frame = this.el.sceneEl.frame;
-        if (!frame) {
-          console.warn("⚠️ No frame available");
-          return;
-        }
-        
-        console.log("✅ Frame available!");
-        
-        // Check for reference space
-        var xrSession = this.el.sceneEl.renderer.xr.getSession();
-        if (!xrSession) {
-          console.warn("⚠️ No XR session");
-          return;
-        }
-        
-        console.log("✅ XR Session available!");
-        
-        var referenceSpace = this.el.sceneEl.renderer.xr.getReferenceSpace();
-        if (!referenceSpace) {
-          console.warn("⚠️ No reference space");
-          return;
-        }
-        
-        console.log("✅ Reference space available!");
-        console.log("🎉 ALL REQUIREMENTS MET - Should create HandData now!");
-        
-        if (!this.HandData) {
-          this.createHandData(handTrackingControls.controller, frame, referenceSpace);
-        }
-        
-        this.HandData.updateData(handTrackingControls.controller, frame, referenceSpace);
-      } else {
-        console.warn("⚠️ No controller or controller.hand");
+      // Create HandData once
+      if (!this.HandData) {
+        console.log("🎉 Creating HandData for", targetHandedness, "hand!");
+        this.createHandData();
       }
+      
+      // Update hand data
+      this.HandData.updateData(handInputSource, frame, referenceSpace);
     };
   }(),
   
-  createHandData: function(controller, frame, referenceSpace) {
-    console.log("🎉 Creating HandData!");
+  runDiagnostic: function() {
+    console.log("=== DIAGNOSTIC START ===");
     
+    var handTrackingControls = this.el.components['hand-tracking-controls'];
+    
+    if (!handTrackingControls) {
+      console.warn("⚠️ No hand-tracking-controls component");
+      return;
+    }
+    
+    console.log("🔍 hand-tracking-controls keys:", Object.keys(handTrackingControls));
+    console.log("🔍 hand-tracking-controls.controller:", handTrackingControls.controller);
+    console.log("🔍 hand-tracking-controls.data:", handTrackingControls.data);
+    
+    var renderer = this.el.sceneEl.renderer;
+    if (renderer && renderer.xr) {
+      var session = renderer.xr.getSession();
+      if (session) {
+        console.log("✅ XR Session active!");
+        console.log("🔍 Input sources count:", session.inputSources.length);
+        
+        for (let i = 0; i < session.inputSources.length; i++) {
+          let source = session.inputSources[i];
+          console.log(`Input source ${i}: handedness=${source.handedness}, hasHand=${!!source.hand}`);
+        }
+      }
+    }
+    
+    var frame = this.el.sceneEl.frame;
+    console.log("Frame available:", !!frame);
+    
+    console.log("=== DIAGNOSTIC END ===");
+  },
+  
+  createHandData: function() {
     const HandData = function() {
       const Joint_Count = 25;
       const rotMtx = { elements: new Float32Array(16) };
@@ -81,8 +102,6 @@ AFRAME.registerComponent("hand-tracking-extras", {
       var validPoses = false;
       
       var tmpVector = new THREE.Vector3();
-      var tmpQuaternion = new THREE.Quaternion();
-      var tmpDummy = new THREE.Object3D();
       
       const JointObject = function(id, num, parent) {
         this.id = id;
@@ -95,7 +114,7 @@ AFRAME.registerComponent("hand-tracking-extras", {
       };
       
       JointObject.prototype.isValid = function() {
-        return this.parent.getValidity(this.num);
+        return this.parent.getValidity();
       };
       
       let num = 0;
@@ -129,10 +148,10 @@ AFRAME.registerComponent("hand-tracking-extras", {
       
       this.joints = joints;
       
-      this.updateData = (controller, frame, referenceSpace) => {
-        frame.fillJointRadii(controller.hand.values(), radii);
-        validPoses = frame.fillPoses(controller.hand.values(), referenceSpace, transforms);
-        if (!validPoses) return;
+      this.updateData = (inputSource, frame, referenceSpace) => {
+        if (!inputSource.hand) return;
+        frame.fillJointRadii(inputSource.hand.values(), radii);
+        validPoses = frame.fillPoses(inputSource.hand.values(), referenceSpace, transforms);
       };
       
       this.getPosition = (id, _vector) => {
@@ -145,8 +164,7 @@ AFRAME.registerComponent("hand-tracking-extras", {
     };
     
     this.HandData = new HandData();
-    console.log("✅ HandData created:", this.HandData);
-    console.log("✅ Joints available:", Object.keys(this.HandData.joints));
+    console.log("✅ HandData created");
     
     this.el.emit("hand-tracking-extras-ready", {
       data: this.HandData
@@ -156,12 +174,11 @@ AFRAME.registerComponent("hand-tracking-extras", {
   },
   
   play: function () {
-    console.log("▶️ hand-tracking-extras PLAY called");
+    console.log("▶️ hand-tracking-extras PLAY");
     this.isPaused = false;
   },
   
   pause: function () {
-    console.log("⏸️ hand-tracking-extras PAUSE called");
     this.isPaused = true;
   },
   
