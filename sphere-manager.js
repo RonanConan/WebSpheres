@@ -23,6 +23,7 @@ AFRAME.registerComponent('sphere-manager', {
         this.leftJoints = null;
         this.rightJoints = null;
         this.collisionMargin = 0.02;
+        this.lastDebugTime = 0;
 
         this.leftRectangle = document.querySelector('#left-rectangle');
         this.rightRectangle = document.querySelector('#right-rectangle');
@@ -45,12 +46,27 @@ AFRAME.registerComponent('sphere-manager', {
     },
 
     onExtrasReady: function (evt) {
+        console.log("🎯 hand-tracking-extras-ready event fired!", evt);
         const joints = evt?.detail?.data?.joints;
-        if (!joints) return;
+        console.log("🎯 Joints received:", joints);
+        
+        if (!joints) {
+            console.warn("⚠️ No joints in event data!");
+            return;
+        }
+        
         const handAttr = evt.target.getAttribute('hand-tracking-controls');
         const side = handAttr && handAttr.hand;
-        if (side === 'left') this.leftJoints = joints;
-        if (side === 'right') this.rightJoints = joints;
+        console.log("🎯 Hand side:", side);
+        
+        if (side === 'left') {
+            this.leftJoints = joints;
+            console.log("✅ Left joints stored:", this.leftJoints);
+        }
+        if (side === 'right') {
+            this.rightJoints = joints;
+            console.log("✅ Right joints stored:", this.rightJoints);
+        }
     },
     
     createSpheres: function() {
@@ -432,36 +448,33 @@ AFRAME.registerComponent('sphere-manager', {
                Math.abs(handPos.z - rectanglePos.z) < depth;
     },
 
-checkJointCollisions: function(joints, spherePos) {
-    if (!joints) return false;
-    
-    const jointNames = [
-        'Wrist',
-        // Thumb has only 4 joints (no Intermediate)
-        'T_Tip', 'T_Distal', 'T_Proximal', 'T_Metacarpal',
-        // Other fingers have 5 joints each
-        'I_Tip', 'I_Distal', 'I_Intermediate', 'I_Proximal', 'I_Metacarpal',
-        'M_Tip', 'M_Distal', 'M_Intermediate', 'M_Proximal', 'M_Metacarpal',
-        'R_Tip', 'R_Distal', 'R_Intermediate', 'R_Proximal', 'R_Metacarpal',
-        'L_Tip', 'L_Distal', 'L_Intermediate', 'L_Proximal', 'L_Metacarpal'
-    ];
-    
-    const jointPos = new THREE.Vector3();
-    
-    for (let jointName of jointNames) {
-        const joint = joints[jointName];
-        if (!joint || !joint.isValid()) continue;
+    checkJointCollisions: function(joints, spherePos) {
+        if (!joints) return false;
         
-        joint.getPosition(jointPos);
+        const jointNames = [
+            'Wrist',
+            'T_Tip', 'T_Distal', 'T_Proximal', 'T_Metacarpal',
+            'I_Tip', 'I_Distal', 'I_Intermediate', 'I_Proximal', 'I_Metacarpal',
+            'M_Tip', 'M_Distal', 'M_Intermediate', 'M_Proximal', 'M_Metacarpal',
+            'R_Tip', 'R_Distal', 'R_Intermediate', 'R_Proximal', 'R_Metacarpal',
+            'L_Tip', 'L_Distal', 'L_Intermediate', 'L_Proximal', 'L_Metacarpal'
+        ];
         
-        // Only check if joint touches sphere
-        if (this.isInsideSphere(jointPos, spherePos)) {
-            return true;
+        const jointPos = new THREE.Vector3();
+        
+        for (let jointName of jointNames) {
+            const joint = joints[jointName];
+            if (!joint || !joint.isValid()) continue;
+            
+            joint.getPosition(jointPos);
+            
+            if (this.isInsideSphere(jointPos, spherePos)) {
+                return true;
+            }
         }
-    }
-    
-    return false;
-},
+        
+        return false;
+    },
 
     handleHit: function(handUsed, spherePos) {
         if (this.currentState !== 'visible') return;
@@ -510,28 +523,48 @@ checkJointCollisions: function(joints, spherePos) {
         if (this.currentState === 'visible' && this.activeSphere) {
             const spherePos = this.activeSphere.getAttribute('position');
             
+            // DEBUG: Log joint status once per second
+            if (!this.lastDebugTime || Date.now() - this.lastDebugTime > 1000) {
+                console.log("🔍 Joint Status - Left:", !!this.leftJoints, "Right:", !!this.rightJoints);
+                if (this.leftJoints) {
+                    console.log("🔍 Left joints object:", this.leftJoints);
+                    console.log("🔍 Left Wrist valid?", this.leftJoints.Wrist?.isValid());
+                }
+                if (this.rightJoints) {
+                    console.log("🔍 Right joints object:", this.rightJoints);
+                    console.log("🔍 Right Wrist valid?", this.rightJoints.Wrist?.isValid());
+                }
+                this.lastDebugTime = Date.now();
+            }
+            
             // Try new joint-based detection first (preferred)
             if (this.leftJoints || this.rightJoints) {
+                console.log("Using joint-based detection");
                 const leftCollision = this.checkJointCollisions(this.leftJoints, spherePos);
                 const rightCollision = this.checkJointCollisions(this.rightJoints, spherePos);
                 
                 if (leftCollision) {
+                    console.log("✅ LEFT HAND HIT DETECTED via joints!");
                     this.handleHit('LEFT', spherePos);
                     return;
                 }
                 if (rightCollision) {
+                    console.log("✅ RIGHT HAND HIT DETECTED via joints!");
                     this.handleHit('RIGHT', spherePos);
                     return;
                 }
             } 
             // Fallback to old index-tip detection if extras not ready
             else {
+                console.log("Using fallback index-tip detection");
                 const leftPos = this.getHandPosition(this.leftController);
                 const rightPos = this.getHandPosition(this.rightController);
                 
                 if (leftPos && this.isInsideSphere(leftPos, spherePos)) {
+                    console.log("✅ LEFT HAND HIT DETECTED via fallback!");
                     this.handleHit('LEFT', spherePos);
                 } else if (rightPos && this.isInsideSphere(rightPos, spherePos)) {
+                    console.log("✅ RIGHT HAND HIT DETECTED via fallback!");
                     this.handleHit('RIGHT', spherePos);
                 }
             }
