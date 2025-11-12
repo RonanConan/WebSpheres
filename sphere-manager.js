@@ -432,34 +432,36 @@ AFRAME.registerComponent('sphere-manager', {
                Math.abs(handPos.z - rectanglePos.z) < depth;
     },
 
-    checkJointCollisions: function(joints, spherePos) {
-        if (!joints) return false;
+checkJointCollisions: function(joints, spherePos) {
+    if (!joints) return false;
+    
+    const jointNames = [
+        'Wrist',
+        // Thumb has only 4 joints (no Intermediate)
+        'T_Tip', 'T_Distal', 'T_Proximal', 'T_Metacarpal',
+        // Other fingers have 5 joints each
+        'I_Tip', 'I_Distal', 'I_Intermediate', 'I_Proximal', 'I_Metacarpal',
+        'M_Tip', 'M_Distal', 'M_Intermediate', 'M_Proximal', 'M_Metacarpal',
+        'R_Tip', 'R_Distal', 'R_Intermediate', 'R_Proximal', 'R_Metacarpal',
+        'L_Tip', 'L_Distal', 'L_Intermediate', 'L_Proximal', 'L_Metacarpal'
+    ];
+    
+    const jointPos = new THREE.Vector3();
+    
+    for (let jointName of jointNames) {
+        const joint = joints[jointName];
+        if (!joint || !joint.isValid()) continue;
         
-        const jointNames = [
-            'Wrist',
-            'T_Tip', 'T_Proximal', 'T_Distal', 'T_Intermediate', 'T_Metacarpal',
-            'I_Tip', 'I_Proximal', 'I_Distal', 'I_Intermediate', 'I_Metacarpal',
-            'M_Tip', 'M_Proximal', 'M_Distal', 'M_Intermediate', 'M_Metacarpal',
-            'R_Tip', 'R_Proximal', 'R_Distal', 'R_Intermediate', 'R_Metacarpal',
-            'L_Tip', 'L_Proximal', 'L_Distal', 'L_Intermediate', 'L_Metacarpal'
-        ];
+        joint.getPosition(jointPos);
         
-        const jointPos = new THREE.Vector3();
-        
-        for (let jointName of jointNames) {
-            const joint = joints[jointName];
-            if (!joint || !joint.isValid()) continue;
-            
-            joint.getPosition(jointPos);
-            
-            // Only check if joint touches sphere
-            if (this.isInsideSphere(jointPos, spherePos)) {
-                return true;
-            }
+        // Only check if joint touches sphere
+        if (this.isInsideSphere(jointPos, spherePos)) {
+            return true;
         }
-        
-        return false;
-    },
+    }
+    
+    return false;
+},
 
     handleHit: function(handUsed, spherePos) {
         if (this.currentState !== 'visible') return;
