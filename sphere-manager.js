@@ -20,7 +20,7 @@ AFRAME.registerComponent('sphere-manager', {
         this.currentPhase = 0;
         this.phaseAppearanceCounts = [0,0,0,0,0,0,0,0,0,0,0];
 
-        // NEW: joint caches + margin for collision thickness
+        // NEW: joint cachess + margin for collision thickness
         this.leftJoints = null;
         this.rightJoints = null;
         this.collisionMargin = 0.02; // meters; tune if needed
