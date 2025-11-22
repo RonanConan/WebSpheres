@@ -9,9 +9,9 @@
             THREE.Math = THREE.MathUtils;
         }
     </script>
-    <!-- Removed incompatible aframe-particle-system-component -->
-    <script src="sparkle-system.js"></script>
 
+    <!-- Custom Components -->
+    <script src="sparkle-system.js"></script>
     <script src="hand-tracking-extras-debug.js"></script>
     <script src="audio-manager.js"></script>
     <script src="data-manager.js"></script>
@@ -23,23 +23,56 @@
 
 <body>
     <a-scene xr-mode-ui="XRMode: xr">
-        <a-text id="score-display" position="0 1.8 -1.2" value="0" align="center" scale="0.45 0.45 0.45" score-manager>
-        </a-text>
 
-        <a-text id="progress-display" position="0 1.6 -1.2" value="Progress: 0%" align="center" scale="0.45 0.45 0.45">
-        </a-text>
+        <!-- === REACTIVE HOLO-DASHBOARD === -->
+        <a-entity id="holo-dashboard" position="0 1.6 -1.5" rotation="15 0 0">
 
+            <!-- Glass Background Panel -->
+            <a-entity geometry="primitive: plane; width: 1.4; height: 0.5"
+                material="color: #000000; opacity: 0.6; transparent: true; shader: flat" position="0 0 0"></a-entity>
+
+            <!-- Dashboard Frame/Border (Top and Bottom strips) -->
+            <a-entity geometry="primitive: plane; width: 1.4; height: 0.02" material="color: #00ffff; shader: flat"
+                position="0 0.24 0.01"></a-entity>
+            <a-entity geometry="primitive: plane; width: 1.4; height: 0.02" material="color: #00ffff; shader: flat"
+                position="0 -0.24 0.01"></a-entity>
+
+            <!-- SCORE SECTION (Centered) -->
+            <a-text value="SCORE" position="0 0.12 0.02" align="center" width="2" color="#888888"
+                font="exo2bold"></a-text>
+            <!-- The main score readout. We give it an ID to target it for flying numbers -->
+            <a-text id="dashboard-score" value="0" position="0 0 0.02" align="center" width="7" color="#FFFFFF"
+                font="exo2bold" score-manager></a-text>
+
+            <!-- PROGRESS BAR SECTION (Bottom) -->
+            <!-- Background track -->
+            <a-entity position="0 -0.15 0.02" geometry="primitive: plane; width: 1.2; height: 0.05"
+                material="color: #333333"></a-entity>
+
+            <!-- The Fill Bar. 
+                 We wrap it in a container entity shifted to the LEFT (-0.6).
+                 This way, when we scale the inside plane, it grows from left to right. -->
+            <a-entity id="progress-bar-container" position="-0.6 -0.15 0.03">
+                <a-entity id="progress-fill" geometry="primitive: plane; width: 1.2; height: 0.04"
+                    material="color: #00ffff; shader: flat" position="0.6 0 0" scale="0 1 1"> <!-- Start at 0 scale -->
+                </a-entity>
+            </a-entity>
+
+            <!-- Percentage Text -->
+            <a-text id="progress-text" value="0%" position="0 -0.15 0.04" align="center" width="2.5" color="#000000"
+                font="exo2bold"></a-text>
+        </a-entity>
+
+        <!-- MANAGERS -->
         <a-entity id="audio-manager" audio-manager></a-entity>
-
         <a-entity id="data-manager" data-manager></a-entity>
-
         <a-entity id="kinematics-manager" kinematics-manager></a-entity>
-
         <a-entity id="sphere-manager" sphere-manager></a-entity>
 
-        <!-- New Sparkle System Entity -->
+        <!-- Sparkle System -->
         <a-entity id="sparkle-burst" sparkle-system="count: 40; color: #FFD700; lifetime: 800"></a-entity>
 
+        <!-- Calibration / Homing Areas -->
         <a-box id="left-rectangle" position="-0.3 0.9 -0.4" geometry="width: 0.24; height: 0.09; depth: 0.18"
             material="color: #00ff00; transparent: true; opacity: 0.3">
         </a-box>
@@ -48,10 +81,9 @@
             material="color: #00ff00; transparent: true; opacity: 0.3">
         </a-box>
 
-        <!-- unchanged controls, just add hand-tracking-extras -->
+        <!-- Controllers -->
         <a-entity hand-tracking-controls="hand: left" hand-tracking-extras></a-entity>
         <a-entity hand-tracking-controls="hand: right" hand-tracking-extras></a-entity>
-
         <a-entity meta-touch-controls="hand: right; model: false"></a-entity>
     </a-scene>
 </body>
