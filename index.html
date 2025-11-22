@@ -3,6 +3,12 @@
 
 <head>
     <script src="https://aframe.io/releases/1.7.0/aframe.min.js"></script>
+    <script>
+        // Polyfill for THREE.Math compatibility with A-Frame 1.7.0
+        if (typeof THREE !== 'undefined' && !THREE.Math) {
+            THREE.Math = THREE.MathUtils;
+        }
+    </script>
     <script src="aframe-particle-system-component.min.js"></script>
     <script src="hand-tracking-extras-debug.js"></script>
     <script src="audio-manager.js"></script>
@@ -29,8 +35,7 @@
 
         <a-entity id="sphere-manager" sphere-manager></a-entity>
 
-        <a-entity id="sparkle-burst"
-            particle-system="
+        <a-entity id="sparkle-burst" particle-system="
                 enabled: false;
                 preset: default;
                 type: 2;
@@ -41,8 +46,7 @@
                 size: 0.5,0.1;
                 velocityValue: 1 1 1;
                 velocitySpread: 2 2 2;
-                blending: 2;
-                texture: data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mP8/5+hHgAHggJ/PchI7wAAAABJRU5ErkJggg==">
+                blending: 2">
         </a-entity>
 
         <a-box id="left-rectangle" position="-0.3 0.9 -0.4" geometry="width: 0.24; height: 0.09; depth: 0.18"
