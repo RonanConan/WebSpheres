@@ -3,69 +3,69 @@ AFRAME.registerComponent("hand-tracking-extras", {
     this.el.addEventListener("enter-vr", this.play.bind(this));
     this.el.addEventListener("exit-vr", this.pause.bind(this));
   },
-  
+
   tick: function () {
     return function () {
       if (this.isPaused) return;
-      
+
       var frame = this.el.sceneEl.frame;
       var renderer = this.el.sceneEl.renderer;
-      
+
       if (!frame || !renderer || !renderer.xr) return;
-      
+
       var session = renderer.xr.getSession();
       if (!session) return;
-      
+
       var referenceSpace = renderer.xr.getReferenceSpace();
       if (!referenceSpace) return;
-      
+
       var handTrackingControls = this.el.components['hand-tracking-controls'];
       if (!handTrackingControls) return;
-      
+
       var targetHandedness = handTrackingControls.data.hand;
       var handInputSource = null;
-      
+
       for (let source of session.inputSources) {
         if (source.handedness === targetHandedness && source.hand) {
           handInputSource = source;
           break;
         }
       }
-      
+
       if (!handInputSource) return;
-      
+
       if (!this.HandData) {
         this.createHandData();
       }
-      
+
       this.HandData.updateData(handInputSource, frame, referenceSpace);
     };
   }(),
-  
-  createHandData: function() {
-    const HandData = function() {
+
+  createHandData: function () {
+    const HandData = function () {
       const Joint_Count = 25;
       const rotMtx = { elements: new Float32Array(16) };
       const radii = new Float32Array(Joint_Count);
       const transforms = new Float32Array(4 * 4 * Joint_Count);
       var validPoses = false;
-      
+
       var tmpVector = new THREE.Vector3();
-      
-      const JointObject = function(id, num, parent) {
+
+      const JointObject = function (id, num, parent) {
         this.id = id;
         this.num = num;
         this.parent = parent;
       };
-      
-      JointObject.prototype.getPosition = function(_vector) {
+
+      JointObject.prototype.getPosition = function (_vector) {
         return this.parent.getPosition(this.num, _vector);
       };
-      
-      JointObject.prototype.isValid = function() {
+
+      JointObject.prototype.isValid = function () {
         return this.parent.getValidity();
       };
-      
+
       let num = 0;
       const joints = {
         Wrist: new JointObject("wrist", num++, this),
@@ -94,39 +94,39 @@ AFRAME.registerComponent("hand-tracking-extras", {
         L_Distal: new JointObject("pinky-finger-phalanx-distal", num++, this),
         L_Tip: new JointObject("pinky-finger-tip", num++, this)
       };
-      
+
       this.joints = joints;
-      
+
       this.updateData = (inputSource, frame, referenceSpace) => {
         if (!inputSource.hand) return;
         frame.fillJointRadii(inputSource.hand.values(), radii);
         validPoses = frame.fillPoses(inputSource.hand.values(), referenceSpace, transforms);
       };
-      
+
       this.getPosition = (id, _vector) => {
         const mtxOffset = id * 16;
         let vector = _vector ? _vector : tmpVector.clone();
         return vector.fromArray(transforms, mtxOffset + 12);
       };
-      
+
       this.getValidity = () => validPoses;
     };
-    
+
     this.HandData = new HandData();
-    
+
     this.el.emit("hand-tracking-extras-ready", {
       data: this.HandData
     });
   },
-  
+
   play: function () {
     this.isPaused = false;
   },
-  
+
   pause: function () {
     this.isPaused = true;
   },
-  
+
   remove: function () {
     this.el.removeEventListener("enter-vr", this.play);
     this.el.removeEventListener("exit-vr", this.pause);
