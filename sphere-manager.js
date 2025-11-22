@@ -24,6 +24,11 @@ AFRAME.registerComponent('sphere-manager', {
         this.rightJoints = null;
         this.collisionMargin = 0.02;
 
+        // Track whether hands were at home in previous frame
+        this.leftWasAtHome = false;
+        this.rightWasAtHome = false;
+        this.homeTrackingInitialized = false;
+
         this.leftRectangle = document.querySelector('#left-rectangle');
         this.rightRectangle = document.querySelector('#right-rectangle');
         this.leftController = document.querySelector('[hand-tracking-controls="hand: left"]');
@@ -414,6 +419,7 @@ AFRAME.registerComponent('sphere-manager', {
             this.activeSphere.setAttribute('visible', false);
             this.activeSphere = null;
             this.decisionTimeRecorded = false;
+            this.homeTrackingInitialized = false;
             this.currentState = 'invisible';
             this.disappearTimer = null;
         }, 300);
@@ -469,12 +475,6 @@ AFRAME.registerComponent('sphere-manager', {
     handleHit: function (handUsed, spherePos) {
         if (this.currentState !== 'visible') return;
 
-        if (!this.decisionTimeRecorded) {
-            const dataManager = document.querySelector('#data-manager').components['data-manager'];
-            dataManager.stopDecisionTimer();
-            this.decisionTimeRecorded = true;
-        }
-
         const scoreManager = document.querySelector('#score-display').components['score-manager'];
         const result = scoreManager.calculateHitPoints(handUsed);
         scoreManager.addPoints(result.points);
@@ -500,23 +500,49 @@ AFRAME.registerComponent('sphere-manager', {
     tick: function () {
         if (this.isPaused) return;
 
+        // Get hand positions
+        const leftPos = this.getHandPosition(this.leftController);
+        const rightPos = this.getHandPosition(this.rightController);
+        const leftRectPos = this.leftRectangle.getAttribute('position');
+        const rightRectPos = this.rightRectangle.getAttribute('position');
+
+        const leftAtHome = leftPos && this.isInsideRectangle(leftPos, leftRectPos);
+        const rightAtHome = rightPos && this.isInsideRectangle(rightPos, rightRectPos);
+
         // Only start new trial when both hands are at home
         if (this.currentState === 'invisible' && this.totalAppearances < this.totalTrials) {
-            const leftPos = this.getHandPosition(this.leftController);
-            const rightPos = this.getHandPosition(this.rightController);
-            const leftRectPos = this.leftRectangle.getAttribute('position');
-            const rightRectPos = this.rightRectangle.getAttribute('position');
-
-            const leftAtHome = leftPos && this.isInsideRectangle(leftPos, leftRectPos);
-            const rightAtHome = rightPos && this.isInsideRectangle(rightPos, rightRectPos);
-
-            // Only proceed if BOTH hands are in home positions
             if (leftAtHome && rightAtHome) {
                 this.selectRandomSphere();
                 if (this.activeSphere) {
                     this.currentState = 'waiting-to-appear';
                     this.startAppearTimer();
                 }
+            }
+        }
+
+        // During visible state, track hands and check for leaving home
+        if (this.currentState === 'visible') {
+            // Initialize home tracking on first frame of visible state
+            if (!this.homeTrackingInitialized) {
+                this.leftWasAtHome = leftAtHome;
+                this.rightWasAtHome = rightAtHome;
+                this.homeTrackingInitialized = true;
+            }
+
+            // Check for hand leaving home (for decision time)
+            if (!this.decisionTimeRecorded) {
+                const leftLeftHome = this.leftWasAtHome && !leftAtHome;
+                const rightLeftHome = this.rightWasAtHome && !rightAtHome;
+
+                if (leftLeftHome || rightLeftHome) {
+                    const dataManager = document.querySelector('#data-manager').components['data-manager'];
+                    dataManager.stopDecisionTimer();
+                    this.decisionTimeRecorded = true;
+                }
+
+                // Update home tracking for next frame
+                this.leftWasAtHome = leftAtHome;
+                this.rightWasAtHome = rightAtHome;
             }
         }
 
@@ -537,9 +563,6 @@ AFRAME.registerComponent('sphere-manager', {
                     return;
                 }
             } else {
-                const leftPos = this.getHandPosition(this.leftController);
-                const rightPos = this.getHandPosition(this.rightController);
-
                 if (leftPos && this.isInsideSphere(leftPos, spherePos)) {
                     this.handleHit('LEFT', spherePos);
                 } else if (rightPos && this.isInsideSphere(rightPos, spherePos)) {
