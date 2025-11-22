@@ -84,14 +84,17 @@ AFRAME.registerComponent('sphere-manager', {
     },
 
     createFloatingNumber: function (spherePosition, points, hitType) {
-        const floatingNumber = document.createElement('a-entity');
-        floatingNumber.setAttribute('position', `${spherePosition.x} ${spherePosition.y + 0.1} ${spherePosition.z}`);
-        floatingNumber.setAttribute('floating-number', {
-            value: points,
-            hitType: hitType
-        });
-
-        this.el.sceneEl.appendChild(floatingNumber);
+        try {
+            const floatingNumber = document.createElement('a-entity');
+            floatingNumber.setAttribute('position', `${spherePosition.x} ${spherePosition.y + 0.1} ${spherePosition.z}`);
+            floatingNumber.setAttribute('floating-number', {
+                value: points,
+                hitType: hitType
+            });
+            this.el.sceneEl.appendChild(floatingNumber);
+        } catch (e) {
+            console.warn("Error creating floating number:", e);
+        }
     },
 
     setupCalibration: function () {
@@ -474,39 +477,53 @@ AFRAME.registerComponent('sphere-manager', {
     },
 
     handleHit: function (handUsed, spherePos) {
+        // CRITICAL FIX: Ensure function doesn't exit early on visual errors
         if (this.currentState !== 'visible') return;
 
-        const scoreManager = document.querySelector('#score-display').components['score-manager'];
-        const result = scoreManager.calculateHitPoints(handUsed);
-        scoreManager.addPoints(result.points);
+        try {
+            const scoreManager = document.querySelector('#score-display').components['score-manager'];
+            const result = scoreManager.calculateHitPoints(handUsed);
+            scoreManager.addPoints(result.points);
 
-        this.activeSphere.setAttribute('color', result.hitType === 'critical' ? '#FFD700' : '#00ff00');
-        this.createFloatingNumber(spherePos, result.points, result.hitType);
+            this.activeSphere.setAttribute('color', result.hitType === 'critical' ? '#FFD700' : '#00ff00');
 
-        if (result.hitType === 'critical') {
-            if (!this.sparkleBurst) {
-                this.sparkleBurst = document.querySelector('#sparkle-burst');
+            // Wrap FX in try-catch so game doesn't break if they fail
+            try {
+                this.createFloatingNumber(spherePos, result.points, result.hitType);
+
+                if (result.hitType === 'critical') {
+                    if (!this.sparkleBurst) {
+                        this.sparkleBurst = document.querySelector('#sparkle-burst');
+                    }
+                    // Use optional chaining for safety
+                    if (this.sparkleBurst && this.sparkleBurst.components['sparkle-system']) {
+                        const sphereVec3 = new THREE.Vector3(spherePos.x, spherePos.y, spherePos.z);
+                        this.sparkleBurst.components['sparkle-system'].createBurst(sphereVec3);
+                    }
+                }
+            } catch (fxError) {
+                console.warn("FX Generation failed:", fxError);
             }
-            if (this.sparkleBurst) {
-                // MODIFIED: Updated to use new Sparkle System
-                const sphereVec3 = new THREE.Vector3(spherePos.x, spherePos.y, spherePos.z);
-                this.sparkleBurst.components['sparkle-system'].createBurst(sphereVec3);
-            }
+
+            // DATA RECORDING - Must happen regardless of visual errors
+            const sphereIndex = this.allSpheres.indexOf(this.activeSphere);
+            const dataManager = document.querySelector('#data-manager').components['data-manager'];
+            dataManager.calculateAndStoreMovementTime();
+            dataManager.recordTrial(
+                sphereIndex,
+                handUsed,
+                result.points,
+                result.hitType,
+                dataManager.currentDecisionTime
+            );
+
+        } catch (e) {
+            console.error("Critical error in handleHit:", e);
+        } finally {
+            // Ensure state always resets
+            this.currentState = 'cooldown';
+            this.startDisappearTimer();
         }
-
-        const sphereIndex = this.allSpheres.indexOf(this.activeSphere);
-        const dataManager = document.querySelector('#data-manager').components['data-manager'];
-        dataManager.calculateAndStoreMovementTime();
-        dataManager.recordTrial(
-            sphereIndex,
-            handUsed,
-            result.points,
-            result.hitType,
-            dataManager.currentDecisionTime
-        );
-
-        this.currentState = 'cooldown';
-        this.startDisappearTimer();
     },
 
     tick: function () {
