@@ -488,8 +488,9 @@ AFRAME.registerComponent('sphere-manager', {
                 this.sparkleBurst = document.querySelector('#sparkle-burst');
             }
             if (this.sparkleBurst) {
-                this.sparkleBurst.setAttribute('position', `${spherePos.x} ${spherePos.y} ${spherePos.z}`);
-                this.sparkleBurst.components['particle-system'].startParticles();
+                // MODIFIED: Updated to use new Sparkle System
+                const sphereVec3 = new THREE.Vector3(spherePos.x, spherePos.y, spherePos.z);
+                this.sparkleBurst.components['sparkle-system'].createBurst(sphereVec3);
             }
         }
 

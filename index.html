@@ -9,7 +9,9 @@
             THREE.Math = THREE.MathUtils;
         }
     </script>
-    <script src="aframe-particle-system-component.min.js"></script>
+    <!-- Removed incompatible aframe-particle-system-component -->
+    <script src="sparkle-system.js"></script>
+
     <script src="hand-tracking-extras-debug.js"></script>
     <script src="audio-manager.js"></script>
     <script src="data-manager.js"></script>
@@ -35,19 +37,8 @@
 
         <a-entity id="sphere-manager" sphere-manager></a-entity>
 
-        <a-entity id="sparkle-burst" particle-system="
-                enabled: false;
-                preset: default;
-                type: 2;
-                color: #FFD700,#FFA500;
-                particleCount: 100;
-                duration: 0.5;
-                maxAge: 0.5;
-                size: 0.5,0.1;
-                velocityValue: 1 1 1;
-                velocitySpread: 2 2 2;
-                blending: 2">
-        </a-entity>
+        <!-- New Sparkle System Entity -->
+        <a-entity id="sparkle-burst" sparkle-system="count: 40; color: #FFD700; lifetime: 800"></a-entity>
 
         <a-box id="left-rectangle" position="-0.3 0.9 -0.4" geometry="width: 0.24; height: 0.09; depth: 0.18"
             material="color: #00ff00; transparent: true; opacity: 0.3">
