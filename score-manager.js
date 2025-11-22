@@ -1,10 +1,10 @@
 AFRAME.registerComponent('score-manager', {
     init: function () {
         this.score = 0;
-        // New References for Dashboard
-        this.scoreTextEl = this.el; // The element this component is attached to (#dashboard-score)
+        this.scoreTextEl = this.el; // Attached to #score-display
         this.progressFillEl = document.querySelector('#progress-fill');
-        this.progressTextEl = document.querySelector('#progress-text');
+        // FIXED: Points to restored ID #progress-display
+        this.progressTextEl = document.querySelector('#progress-display');
 
         this.leftHandCriticalChance = 0.3;
         this.rightHandCriticalChance = 0.3;
@@ -66,19 +66,16 @@ AFRAME.registerComponent('score-manager', {
     },
 
     triggerPulseAnimation: function () {
-        // Simple pop animation using A-Frame animation component manually or direct object3D manipulation
-        // We remove previous animation to ensure it triggers again quickly
         this.scoreTextEl.removeAttribute('animation__pulse');
 
         this.scoreTextEl.setAttribute('animation__pulse', {
             property: 'scale',
-            from: '2 2 2',  // "Big" pop
-            to: '1 1 1',    // Return to normal
+            from: '2 2 2',
+            to: '1 1 1',
             dur: 300,
             easing: 'easeOutElastic'
         });
 
-        // Temporary color flash
         this.scoreTextEl.setAttribute('color', '#00ffff');
         setTimeout(() => {
             this.scoreTextEl.setAttribute('color', '#FFFFFF');
@@ -95,7 +92,6 @@ AFRAME.registerComponent('score-manager', {
         // Update Bar Visual (Scale X)
         if (this.progressFillEl) {
             const decimal = current / total;
-            // Clamp between 0 and 1
             const scaleX = Math.min(Math.max(decimal, 0), 1);
             this.progressFillEl.object3D.scale.set(scaleX, 1, 1);
         }

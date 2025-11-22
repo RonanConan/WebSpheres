@@ -33,6 +33,8 @@ AFRAME.registerComponent('sphere-manager', {
         this.rightRectangle = document.querySelector('#right-rectangle');
         this.leftController = document.querySelector('[hand-tracking-controls="hand: left"]');
         this.rightController = document.querySelector('[hand-tracking-controls="hand: right"]');
+
+        // These now correctly point to the elements inside the dashboard
         this.scoreDisplay = document.querySelector('#score-display');
         this.progressDisplay = document.querySelector('#progress-display');
         this.sparkleBurst = null;
@@ -214,10 +216,21 @@ AFRAME.registerComponent('sphere-manager', {
         kinematicsManager.exportCSV();
     },
 
+    // FIXED: Check for Dashboard container to prevent ripping text off the UI
     updateTextPositions: function () {
-        if (this.scoreDisplay && this.progressDisplay) {
-            this.scoreDisplay.setAttribute('position', `0 ${this.height + 0.6} -1.2`);
-            this.progressDisplay.setAttribute('position', `0 ${this.height + 0.4} -1.2`);
+        const dashboard = document.querySelector('#holo-dashboard');
+
+        if (dashboard) {
+            // Move the ENTIRE dashboard if it exists
+            dashboard.setAttribute('position', `0 ${this.height + 0.3} -1.2`);
+        } else {
+            // Fallback for old text-only mode
+            if (this.scoreDisplay) {
+                this.scoreDisplay.setAttribute('position', `0 ${this.height + 0.6} -1.2`);
+            }
+            if (this.progressDisplay) {
+                this.progressDisplay.setAttribute('position', `0 ${this.height + 0.4} -1.2`);
+            }
         }
     },
 
@@ -477,17 +490,16 @@ AFRAME.registerComponent('sphere-manager', {
     },
 
     handleHit: function (handUsed, spherePos) {
-        // CRITICAL FIX: Ensure function doesn't exit early on visual errors
         if (this.currentState !== 'visible') return;
 
         try {
+            // FIXED: This now correctly finds #score-display from the Dashboard
             const scoreManager = document.querySelector('#score-display').components['score-manager'];
             const result = scoreManager.calculateHitPoints(handUsed);
             scoreManager.addPoints(result.points);
 
             this.activeSphere.setAttribute('color', result.hitType === 'critical' ? '#FFD700' : '#00ff00');
 
-            // Wrap FX in try-catch so game doesn't break if they fail
             try {
                 this.createFloatingNumber(spherePos, result.points, result.hitType);
 
@@ -495,7 +507,6 @@ AFRAME.registerComponent('sphere-manager', {
                     if (!this.sparkleBurst) {
                         this.sparkleBurst = document.querySelector('#sparkle-burst');
                     }
-                    // Use optional chaining for safety
                     if (this.sparkleBurst && this.sparkleBurst.components['sparkle-system']) {
                         const sphereVec3 = new THREE.Vector3(spherePos.x, spherePos.y, spherePos.z);
                         this.sparkleBurst.components['sparkle-system'].createBurst(sphereVec3);
@@ -505,7 +516,6 @@ AFRAME.registerComponent('sphere-manager', {
                 console.warn("FX Generation failed:", fxError);
             }
 
-            // DATA RECORDING - Must happen regardless of visual errors
             const sphereIndex = this.allSpheres.indexOf(this.activeSphere);
             const dataManager = document.querySelector('#data-manager').components['data-manager'];
             dataManager.calculateAndStoreMovementTime();
@@ -520,7 +530,6 @@ AFRAME.registerComponent('sphere-manager', {
         } catch (e) {
             console.error("Critical error in handleHit:", e);
         } finally {
-            // Ensure state always resets
             this.currentState = 'cooldown';
             this.startDisappearTimer();
         }

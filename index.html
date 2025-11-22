@@ -25,7 +25,8 @@
     <a-scene xr-mode-ui="XRMode: xr">
 
         <!-- === REACTIVE HOLO-DASHBOARD === -->
-        <a-entity id="holo-dashboard" position="0 1.6 -1.5" rotation="15 0 0">
+        <!-- We give the container an ID so sphere-manager can move the whole thing -->
+        <a-entity id="holo-dashboard" position="0 1.5 -1.2" rotation="15 0 0">
 
             <!-- Glass Background Panel -->
             <a-entity geometry="primitive: plane; width: 1.4; height: 0.6"
@@ -38,27 +39,25 @@
                 position="0 -0.29 0.01"></a-entity>
 
             <!-- SCORE SECTION (Top) -->
-            <!-- Label -->
             <a-text value="SCORE" position="0 0.22 0.02" align="center" width="1.5" color="#888888"
                 font="exo2bold"></a-text>
-            <!-- Main Score (Moved up and width reduced to prevent overlap) -->
-            <a-text id="dashboard-score" value="0" position="0 0.12 0.02" align="center" width="4" color="#FFFFFF"
+
+            <!-- CRITICAL: ID restored to 'score-display' so logic finds it -->
+            <a-text id="score-display" value="0" position="0 0.12 0.02" align="center" width="4" color="#FFFFFF"
                 font="exo2bold" score-manager></a-text>
 
             <!-- PROGRESS BAR SECTION (Bottom) -->
-            <!-- Background track -->
             <a-entity position="0 -0.12 0.02" geometry="primitive: plane; width: 1.2; height: 0.05"
                 material="color: #333333"></a-entity>
 
-            <!-- The Fill Bar (Shifted forward to z=0.03 to sit on top of track) -->
             <a-entity id="progress-bar-container" position="-0.6 -0.12 0.03">
                 <a-entity id="progress-fill" geometry="primitive: plane; width: 1.2; height: 0.04"
                     material="color: #00ffff; shader: flat" position="0.6 0 0" scale="0 1 1">
                 </a-entity>
             </a-entity>
 
-            <!-- Percentage Text (Moved below the bar) -->
-            <a-text id="progress-text" value="0%" position="0 -0.22 0.02" align="center" width="2" color="#CCCCCC"
+            <!-- CRITICAL: ID restored to 'progress-display' so logic finds it -->
+            <a-text id="progress-display" value="0%" position="0 -0.22 0.02" align="center" width="2" color="#CCCCCC"
                 font="exo2bold"></a-text>
         </a-entity>
 
@@ -68,7 +67,6 @@
         <a-entity id="kinematics-manager" kinematics-manager></a-entity>
         <a-entity id="sphere-manager" sphere-manager></a-entity>
 
-        <!-- Sparkle System -->
         <a-entity id="sparkle-burst" sparkle-system="count: 40; color: #FFD700; lifetime: 800"></a-entity>
 
         <!-- Calibration / Homing Areas -->

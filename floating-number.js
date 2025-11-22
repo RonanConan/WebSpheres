@@ -21,13 +21,13 @@ AFRAME.registerComponent('floating-number', {
         });
         this.el.setAttribute('scale', scale);
 
-        // Face Camera initially (Check for camera existence)
+        // Face Camera initially
         if (this.el.sceneEl.camera) {
             this.el.object3D.lookAt(this.el.sceneEl.camera.position);
         }
 
-        // Find Destination (The Dashboard Score)
-        const dashboardScoreEl = document.querySelector('#dashboard-score');
+        // FIXED: Target the restored ID #score-display
+        const dashboardScoreEl = document.querySelector('#score-display');
         let targetPosition = new THREE.Vector3(0, 1.6, -1.5); // Default fallback
 
         if (dashboardScoreEl) {
@@ -41,19 +41,17 @@ AFRAME.registerComponent('floating-number', {
         const phase2Duration = 700;
 
         this.animate = () => {
-            if (!this.el.parentNode) return; // Safety check
+            if (!this.el.parentNode) return;
 
             const now = Date.now();
             const elapsed = now - startTime;
 
             if (elapsed < phase1Duration) {
-                // PHASE 1: Float Up
                 const progress = elapsed / phase1Duration;
                 const ease = 1 - (1 - progress) * (1 - progress);
                 this.el.object3D.position.y = startPosition.y + (0.3 * ease);
 
             } else if (elapsed < (phase1Duration + phase2Duration)) {
-                // PHASE 2: Fly to Target
                 const flightProgress = (elapsed - phase1Duration) / phase2Duration;
                 const ease = flightProgress * flightProgress;
 
@@ -66,7 +64,6 @@ AFRAME.registerComponent('floating-number', {
                 this.el.object3D.scale.set(currentScale, currentScale, currentScale);
 
             } else {
-                // END: Clean up
                 if (this.el.parentNode) {
                     this.el.parentNode.removeChild(this.el);
                 }
