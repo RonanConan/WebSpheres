@@ -34,7 +34,7 @@ AFRAME.registerComponent('sphere-manager', {
         this.leftController = document.querySelector('[hand-tracking-controls="hand: left"]');
         this.rightController = document.querySelector('[hand-tracking-controls="hand: right"]');
 
-        // These now correctly point to the elements inside the dashboard
+        // Dashboard Elements
         this.scoreDisplay = document.querySelector('#score-display');
         this.progressDisplay = document.querySelector('#progress-display');
         this.sparkleBurst = null;
@@ -47,7 +47,7 @@ AFRAME.registerComponent('sphere-manager', {
             this.rightController.addEventListener('hand-tracking-extras-ready', this._onExtrasReady);
         }
 
-        this.createSpheres();
+        this.createSpheres(); // Now creates Crystals
         this.setupCalibration();
         this.updateTextPositions();
     },
@@ -73,15 +73,21 @@ AFRAME.registerComponent('sphere-manager', {
             let x = this.radius * Math.sin(angle * Math.PI / 180);
             let z = -this.radius * Math.cos(angle * Math.PI / 180);
 
-            let sphere = document.createElement('a-sphere');
-            sphere.setAttribute('position', `${x} ${this.height} ${z}`);
-            sphere.setAttribute('color', '#ff0000');
-            sphere.setAttribute('radius', '0.05');
-            sphere.setAttribute('visible', 'false');
-            sphere.setAttribute('id', `sphere-${i}`);
+            // CHANGED: From 'a-sphere' to 'a-octahedron' for the Crystal look
+            let crystal = document.createElement('a-octahedron');
+            crystal.setAttribute('position', `${x} ${this.height} ${z}`);
 
-            this.el.sceneEl.appendChild(sphere);
-            this.allSpheres.push(sphere);
+            // Crystal Aesthetics: Cyan, Transparent, Shiny
+            crystal.setAttribute('material', 'color: #00FFFF; opacity: 0.8; transparent: true; metalness: 0.8; roughness: 0.2');
+            crystal.setAttribute('radius', '0.06'); // Slightly larger to account for angular shape
+            crystal.setAttribute('visible', 'false');
+            crystal.setAttribute('id', `sphere-${i}`); // Keeping ID as 'sphere' to maintain compatibility
+
+            // Animation: Gentle spin
+            crystal.setAttribute('animation', 'property: rotation; to: 0 360 0; loop: true; dur: 5000; easing: linear');
+
+            this.el.sceneEl.appendChild(crystal);
+            this.allSpheres.push(crystal);
         }
     },
 
@@ -216,15 +222,12 @@ AFRAME.registerComponent('sphere-manager', {
         kinematicsManager.exportCSV();
     },
 
-    // FIXED: Check for Dashboard container to prevent ripping text off the UI
     updateTextPositions: function () {
         const dashboard = document.querySelector('#holo-dashboard');
 
         if (dashboard) {
-            // Move the ENTIRE dashboard if it exists
             dashboard.setAttribute('position', `0 ${this.height + 0.3} -1.2`);
         } else {
-            // Fallback for old text-only mode
             if (this.scoreDisplay) {
                 this.scoreDisplay.setAttribute('position', `0 ${this.height + 0.6} -1.2`);
             }
@@ -400,7 +403,7 @@ AFRAME.registerComponent('sphere-manager', {
     startAppearTimer: function () {
         this.appearTimer = setTimeout(() => {
             this.activeSphere.setAttribute('visible', true);
-            this.activeSphere.setAttribute('color', '#ff0000');
+            // REMOVED: Color setting logic. The crystal material (Cyan) is permanent.
 
             const sphereIndex = this.allSpheres.indexOf(this.activeSphere);
             this.appearanceCounts[sphereIndex]++;
@@ -443,6 +446,7 @@ AFRAME.registerComponent('sphere-manager', {
     },
 
     isInsideSphere: function (handPos, spherePos) {
+        // Radius for collision remains the same (slightly larger than visual crystal)
         const hitRadius = 0.08;
         const distance = Math.sqrt(
             Math.pow(handPos.x - spherePos.x, 2) +
@@ -493,12 +497,12 @@ AFRAME.registerComponent('sphere-manager', {
         if (this.currentState !== 'visible') return;
 
         try {
-            // FIXED: This now correctly finds #score-display from the Dashboard
             const scoreManager = document.querySelector('#score-display').components['score-manager'];
             const result = scoreManager.calculateHitPoints(handUsed);
             scoreManager.addPoints(result.points);
 
-            this.activeSphere.setAttribute('color', result.hitType === 'critical' ? '#FFD700' : '#00ff00');
+            // SHATTER EFFECT: Hide crystal IMMEDIATELY
+            this.activeSphere.setAttribute('visible', false);
 
             try {
                 this.createFloatingNumber(spherePos, result.points, result.hitType);
