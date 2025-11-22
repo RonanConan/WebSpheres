@@ -10,6 +10,9 @@ AFRAME.registerComponent('floating-number', {
         const color = hitType === 'critical' ? '#FFD700' : '#FFFFFF';
         const initialScale = hitType === 'critical' ? '1.5 1.5 1.5' : '1 1 1';
 
+        // Get starting position
+        const currentPos = this.el.getAttribute('position');
+
         this.el.setAttribute('text', {
             value: `+${this.data.value}`,
             align: 'center',
@@ -19,48 +22,43 @@ AFRAME.registerComponent('floating-number', {
         });
         this.el.setAttribute('scale', initialScale);
 
-        // 2. ORIENTATION (FIXED)
-        // Instead of looking at the camera (which might be 0,0,0),
-        // we look at the user's average head height at the center of the room.
-        // This guarantees text is vertical and readable.
-        this.el.object3D.lookAt(0, 1.6, 0);
+        // 2. ORIENTATION (RESTORED OLD LOGIC)
+        // We look at the center of the room (x=0, z=0) but at the text's OWN height (y).
+        // This makes it face inward but keeps it perfectly upright (no tilting up/down).
+        this.el.object3D.lookAt(0, currentPos.y, 0);
 
-        // 3. GET POSITIONS
-        // Current Start Position
-        const startPos = this.el.getAttribute('position');
-
-        // Calculate Target Position (Dashboard)
-        const targetPos = new THREE.Vector3(0, 1.6, -1.2); // Default
+        // 3. CALCULATE DESTINATION
+        const targetPos = new THREE.Vector3(0, 1.6, -1.2); // Default fallback
         const scoreEl = document.querySelector('#score-display');
+
         if (scoreEl && scoreEl.object3D) {
+            // Force an update to ensure we get the real world coordinates
             scoreEl.object3D.updateMatrixWorld(true);
             scoreEl.object3D.getWorldPosition(targetPos);
-            targetPos.z += 0.1; // Offset forward slightly
+            targetPos.z += 0.1; // Offset slightly forward so it doesn't clip
         }
 
-        // 4. ANIMATION SEQUENCE (Using Native A-Frame Components)
-
-        // PHASE 1: FLOAT UP (0ms - 500ms)
+        // 4. ANIMATION 1: FLOAT UP (0ms - 500ms)
+        // We use the native A-Frame animation component, just like your old code.
         this.el.setAttribute('animation__float', {
             property: 'position',
-            from: `${startPos.x} ${startPos.y} ${startPos.z}`,
-            to: `${startPos.x} ${startPos.y + 0.25} ${startPos.z}`,
+            to: `${currentPos.x} ${currentPos.y + 0.25} ${currentPos.z}`,
             dur: 500,
             easing: 'easeOutQuad'
         });
 
-        // PHASE 2: FLY TO DASHBOARD (500ms - 1200ms)
-        // We trigger this after a delay to create the "Pause then Fly" effect
+        // 5. ANIMATION 2: FLY TO DASHBOARD (500ms - 1200ms)
+        // Triggered after the float completes
         setTimeout(() => {
-            // Move to Dashboard
+            // Fly to target
             this.el.setAttribute('animation__fly', {
                 property: 'position',
                 to: `${targetPos.x} ${targetPos.y} ${targetPos.z}`,
                 dur: 700,
-                easing: 'easeInQuad' // Accelerate towards target
+                easing: 'easeInQuad'
             });
 
-            // Shrink to nothing
+            // Shrink while flying
             this.el.setAttribute('animation__shrink', {
                 property: 'scale',
                 to: '0 0 0',
@@ -69,7 +67,7 @@ AFRAME.registerComponent('floating-number', {
             });
         }, 500);
 
-        // 5. CLEANUP
+        // 6. CLEANUP
         setTimeout(() => {
             if (this.el.parentNode) {
                 this.el.parentNode.removeChild(this.el);
