@@ -35,6 +35,7 @@ AFRAME.registerComponent('sphere-manager', {
         this.rightController = document.querySelector('[hand-tracking-controls="hand: right"]');
         this.scoreDisplay = document.querySelector('#score-display');
         this.progressDisplay = document.querySelector('#progress-display');
+        this.sparkleBurst = null;
 
         this._onExtrasReady = this.onExtrasReady.bind(this);
         if (this.leftController) {
@@ -481,6 +482,16 @@ AFRAME.registerComponent('sphere-manager', {
 
         this.activeSphere.setAttribute('color', result.hitType === 'critical' ? '#FFD700' : '#00ff00');
         this.createFloatingNumber(spherePos, result.points, result.hitType);
+
+        if (result.hitType === 'critical') {
+            if (!this.sparkleBurst) {
+                this.sparkleBurst = document.querySelector('#sparkle-burst');
+            }
+            if (this.sparkleBurst) {
+                this.sparkleBurst.setAttribute('position', `${spherePos.x} ${spherePos.y} ${spherePos.z}`);
+                this.sparkleBurst.components['particle-system'].startParticles();
+            }
+        }
 
         const sphereIndex = this.allSpheres.indexOf(this.activeSphere);
         const dataManager = document.querySelector('#data-manager').components['data-manager'];
