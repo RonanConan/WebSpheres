@@ -500,14 +500,27 @@ AFRAME.registerComponent('sphere-manager', {
     tick: function () {
         if (this.isPaused) return;
 
+        // Only start new trial when both hands are at home
         if (this.currentState === 'invisible' && this.totalAppearances < this.totalTrials) {
-            this.selectRandomSphere();
-            if (this.activeSphere) {
-                this.currentState = 'waiting-to-appear';
-                this.startAppearTimer();
+            const leftPos = this.getHandPosition(this.leftController);
+            const rightPos = this.getHandPosition(this.rightController);
+            const leftRectPos = this.leftRectangle.getAttribute('position');
+            const rightRectPos = this.rightRectangle.getAttribute('position');
+
+            const leftAtHome = leftPos && this.isInsideRectangle(leftPos, leftRectPos);
+            const rightAtHome = rightPos && this.isInsideRectangle(rightPos, rightRectPos);
+
+            // Only proceed if BOTH hands are in home positions
+            if (leftAtHome && rightAtHome) {
+                this.selectRandomSphere();
+                if (this.activeSphere) {
+                    this.currentState = 'waiting-to-appear';
+                    this.startAppearTimer();
+                }
             }
         }
 
+        // Collision detection when sphere is visible
         if (this.currentState === 'visible' && this.activeSphere) {
             const spherePos = this.activeSphere.getAttribute('position');
 
