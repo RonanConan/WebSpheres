@@ -5,10 +5,10 @@ AFRAME.registerComponent('floating-number', {
     },
 
     init: function () {
-        // 1. Setup Visuals
-        const color = this.data.hitType === 'critical' ? '#FFD700' : '#FFFFFF';
-        // Critical hits are larger
-        const scale = this.data.hitType === 'critical' ? 1.5 : 1.0;
+        // 1. SETUP VISUALS
+        const hitType = this.data.hitType;
+        const color = hitType === 'critical' ? '#FFD700' : '#FFFFFF';
+        const initialScale = hitType === 'critical' ? '1.5 1.5 1.5' : '1 1 1';
 
         this.el.setAttribute('text', {
             value: `+${this.data.value}`,
@@ -17,88 +17,63 @@ AFRAME.registerComponent('floating-number', {
             color: color,
             font: 'exo2bold'
         });
+        this.el.setAttribute('scale', initialScale);
 
-        // Apply initial scale
-        this.el.object3D.scale.set(scale, scale, scale);
+        // 2. ORIENTATION (FIXED)
+        // Instead of looking at the camera (which might be 0,0,0),
+        // we look at the user's average head height at the center of the room.
+        // This guarantees text is vertical and readable.
+        this.el.object3D.lookAt(0, 1.6, 0);
 
-        // 2. Capture Starting State
-        // We clone the position so we have a fixed reference point
-        this.startPos = this.el.object3D.position.clone();
+        // 3. GET POSITIONS
+        // Current Start Position
+        const startPos = this.el.getAttribute('position');
 
-        // 3. Animation Timing
-        this.startTime = Date.now();
-        this.phase1Duration = 500;  // Float Up (ms)
-        this.phase2Duration = 700;  // Fly to Dashboard (ms)
-
-        // 4. Prepare Target Vector
-        this.targetPos = new THREE.Vector3();
-        this.targetFound = false;
-
-        // Reusable helper for camera lookAt to avoid garbage collection
-        this.cameraWorldPos = new THREE.Vector3();
-    },
-
-    tick: function (time, timeDelta) {
-        const now = Date.now();
-        const elapsed = now - this.startTime;
-
-        // === 1. HANDLE ORIENTATION (Fixes "Floor Tilt") ===
-        // We check if the camera exists and update the lookAt every single frame.
-        // This ensures that even if tracking starts late, the text will correct itself.
-        if (this.el.sceneEl.camera) {
-            this.el.sceneEl.camera.getWorldPosition(this.cameraWorldPos);
-            this.el.object3D.lookAt(this.cameraWorldPos);
+        // Calculate Target Position (Dashboard)
+        const targetPos = new THREE.Vector3(0, 1.6, -1.2); // Default
+        const scoreEl = document.querySelector('#score-display');
+        if (scoreEl && scoreEl.object3D) {
+            scoreEl.object3D.updateMatrixWorld(true);
+            scoreEl.object3D.getWorldPosition(targetPos);
+            targetPos.z += 0.1; // Offset forward slightly
         }
 
-        // === 2. HANDLE ANIMATION ===
-        if (elapsed < this.phase1Duration) {
-            // --- PHASE 1: FLOAT UP ---
-            // Simple ease-out float
-            const progress = elapsed / this.phase1Duration;
-            const ease = 1 - (1 - progress) * (1 - progress);
+        // 4. ANIMATION SEQUENCE (Using Native A-Frame Components)
 
-            this.el.object3D.position.y = this.startPos.y + (0.3 * ease);
+        // PHASE 1: FLOAT UP (0ms - 500ms)
+        this.el.setAttribute('animation__float', {
+            property: 'position',
+            from: `${startPos.x} ${startPos.y} ${startPos.z}`,
+            to: `${startPos.x} ${startPos.y + 0.25} ${startPos.z}`,
+            dur: 500,
+            easing: 'easeOutQuad'
+        });
 
-        } else if (elapsed < (this.phase1Duration + this.phase2Duration)) {
-            // --- PHASE 2: FLY TO DASHBOARD ---
+        // PHASE 2: FLY TO DASHBOARD (500ms - 1200ms)
+        // We trigger this after a delay to create the "Pause then Fly" effect
+        setTimeout(() => {
+            // Move to Dashboard
+            this.el.setAttribute('animation__fly', {
+                property: 'position',
+                to: `${targetPos.x} ${targetPos.y} ${targetPos.z}`,
+                dur: 700,
+                easing: 'easeInQuad' // Accelerate towards target
+            });
 
-            // Calculate Target Position ONCE at the start of Phase 2
-            // We do this here (delayed) to ensure the Dashboard is fully rendered/positioned.
-            if (!this.targetFound) {
-                const scoreEl = document.querySelector('#score-display');
-                if (scoreEl && scoreEl.object3D) {
-                    // FORCE update the dashboard's position in the world
-                    scoreEl.object3D.updateMatrixWorld(true);
-                    scoreEl.object3D.getWorldPosition(this.targetPos);
-                    this.targetPos.z += 0.1; // Offset slightly forward
-                    this.targetFound = true;
-                } else {
-                    // Fallback if dashboard is missing: just fly up higher
-                    this.targetPos.copy(this.startPos).add(new THREE.Vector3(0, 1.0, 0));
-                    this.targetFound = true;
-                }
-            }
+            // Shrink to nothing
+            this.el.setAttribute('animation__shrink', {
+                property: 'scale',
+                to: '0 0 0',
+                dur: 700,
+                easing: 'easeInQuad'
+            });
+        }, 500);
 
-            const flightProgress = (elapsed - this.phase1Duration) / this.phase2Duration;
-            const ease = flightProgress * flightProgress; // Accelerate
-
-            // Interpolate from the "Float Top" position to the "Target" position
-            const floatTop = this.startPos.clone();
-            floatTop.y += 0.3;
-
-            this.el.object3D.position.lerpVectors(floatTop, this.targetPos, ease);
-
-            // Shrink effect
-            const baseScale = this.data.hitType === 'critical' ? 1.5 : 1.0;
-            const currentScale = baseScale * (1 - ease);
-            this.el.object3D.scale.set(currentScale, currentScale, currentScale);
-
-        } else {
-            // === 3. CLEANUP ===
-            // Animation finished, remove entity from scene
+        // 5. CLEANUP
+        setTimeout(() => {
             if (this.el.parentNode) {
                 this.el.parentNode.removeChild(this.el);
             }
-        }
+        }, 1250);
     }
 });

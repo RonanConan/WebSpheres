@@ -25,28 +25,27 @@
     <a-scene xr-mode-ui="XRMode: xr">
 
         <!-- === REACTIVE HOLO-DASHBOARD === -->
-        <!-- We give the container an ID so sphere-manager can move the whole thing -->
         <a-entity id="holo-dashboard" position="0 1.5 -1.2" rotation="15 0 0">
 
-            <!-- Glass Background Panel -->
+            <!-- Glass Background -->
             <a-entity geometry="primitive: plane; width: 1.4; height: 0.6"
                 material="color: #000000; opacity: 0.6; transparent: true; shader: flat" position="0 0 0"></a-entity>
 
-            <!-- Dashboard Frame/Border -->
+            <!-- Borders -->
             <a-entity geometry="primitive: plane; width: 1.4; height: 0.01" material="color: #00ffff; shader: flat"
                 position="0 0.29 0.01"></a-entity>
             <a-entity geometry="primitive: plane; width: 1.4; height: 0.01" material="color: #00ffff; shader: flat"
                 position="0 -0.29 0.01"></a-entity>
 
-            <!-- SCORE SECTION (Top) -->
+            <!-- SCORE SECTION -->
             <a-text value="SCORE" position="0 0.22 0.02" align="center" width="1.5" color="#888888"
                 font="exo2bold"></a-text>
 
-            <!-- CRITICAL: ID restored to 'score-display' so logic finds it -->
+            <!-- ID: score-display (Target for floating numbers) -->
             <a-text id="score-display" value="0" position="0 0.12 0.02" align="center" width="4" color="#FFFFFF"
                 font="exo2bold" score-manager></a-text>
 
-            <!-- PROGRESS BAR SECTION (Bottom) -->
+            <!-- PROGRESS SECTION -->
             <a-entity position="0 -0.12 0.02" geometry="primitive: plane; width: 1.2; height: 0.05"
                 material="color: #333333"></a-entity>
 
@@ -56,7 +55,7 @@
                 </a-entity>
             </a-entity>
 
-            <!-- CRITICAL: ID restored to 'progress-display' so logic finds it -->
+            <!-- ID: progress-display -->
             <a-text id="progress-display" value="0%" position="0 -0.22 0.02" align="center" width="2" color="#CCCCCC"
                 font="exo2bold"></a-text>
         </a-entity>
@@ -69,7 +68,7 @@
 
         <a-entity id="sparkle-burst" sparkle-system="count: 40; color: #FFD700; lifetime: 800"></a-entity>
 
-        <!-- Calibration / Homing Areas -->
+        <!-- Calibration Areas -->
         <a-box id="left-rectangle" position="-0.3 0.9 -0.4" geometry="width: 0.24; height: 0.09; depth: 0.18"
             material="color: #00ff00; transparent: true; opacity: 0.3">
         </a-box>
