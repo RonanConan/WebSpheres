@@ -1,43 +1,35 @@
 AFRAME.registerComponent('audio-manager', {
-    init: function() {
+    init: function () {
         this.createSounds();
     },
-    
-    createSounds: function() {
-        this.normalSound = document.createElement('audio');
-        this.normalSound.src = 'sounds/normal-hit.mp3';
-        this.normalSound.preload = 'auto';
-        
-        this.criticalSound = document.createElement('audio');
-        this.criticalSound.src = 'sounds/critical-hit.mp3';
-        this.criticalSound.preload = 'auto';
-        
-        this.reachCalibrationSound = document.createElement('audio');
-        this.reachCalibrationSound.src = 'sounds/reach-calibration.mp3';
-        this.reachCalibrationSound.preload = 'auto';
-        
-        this.heightCalibrationSound = document.createElement('audio');
-        this.heightCalibrationSound.src = 'sounds/height-calibration.mp3';
-        this.heightCalibrationSound.preload = 'auto';
-        
-        this.lapCalibrationSound = document.createElement('audio');
-        this.lapCalibrationSound.src = 'sounds/lap-calibration.mp3';
-        this.lapCalibrationSound.preload = 'auto';
-        
-        this.switchSound = document.createElement('audio');
-        this.switchSound.src = 'sounds/switch.mp3';
-        this.switchSound.preload = 'auto';
-        
-        this.leftHandSound = document.createElement('audio');
-        this.leftHandSound.src = 'sounds/left-hand.mp3';
-        this.leftHandSound.preload = 'auto';
-        
-        this.rightHandSound = document.createElement('audio');
-        this.rightHandSound.src = 'sounds/right-hand.mp3';
-        this.rightHandSound.preload = 'auto';
+
+    createSounds: function () {
+        // --- Existing Sounds ---
+        this.normalSound = new Audio('sounds/normal-hit.mp3');
+        this.criticalSound = new Audio('sounds/critical-hit.mp3');
+        this.reachCalibrationSound = new Audio('sounds/reach-calibration.mp3');
+        this.heightCalibrationSound = new Audio('sounds/height-calibration.mp3');
+        this.lapCalibrationSound = new Audio('sounds/lap-calibration.mp3');
+        this.switchSound = new Audio('sounds/switch.mp3');
+        this.leftHandSound = new Audio('sounds/left-hand.mp3');
+        this.rightHandSound = new Audio('sounds/right-hand.mp3');
+
+        // --- NEW: Streak Sounds ---
+        this.hissSound = new Audio('sounds/hiss.mp3');
+
+        // Array of voice lines for random selection
+        this.streakVoices = [
+            new Audio('sounds/fire.mp3'),
+            new Audio('sounds/great.mp3'),
+            new Audio('sounds/amazing.mp3'),
+            new Audio('sounds/wow.mp3')
+        ];
+
+        // Preload all
+        this.streakVoices.forEach(sound => sound.preload = 'auto');
     },
-    
-    playHitSound: function(hitType) {
+
+    playHitSound: function (hitType) {
         if (hitType === 'normal') {
             this.normalSound.currentTime = 0;
             this.normalSound.play();
@@ -46,8 +38,22 @@ AFRAME.registerComponent('audio-manager', {
             this.criticalSound.play();
         }
     },
-    
-    playCalibrationSound: function(soundType) {
+
+    // NEW: Randomly plays one of the 4 motivational lines
+    playFireVoice: function () {
+        const randomIndex = Math.floor(Math.random() * this.streakVoices.length);
+        const sound = this.streakVoices[randomIndex];
+        sound.currentTime = 0;
+        sound.play();
+    },
+
+    // NEW: Plays the cooldown hiss
+    playStreakBreak: function () {
+        this.hissSound.currentTime = 0;
+        this.hissSound.play();
+    },
+
+    playCalibrationSound: function (soundType) {
         if (soundType === 'reach-calibration') {
             this.reachCalibrationSound.currentTime = 0;
             this.reachCalibrationSound.play();
