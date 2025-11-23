@@ -7,8 +7,12 @@ AFRAME.registerComponent('floating-number', {
     init: function () {
         // 1. SETUP VISUALS
         const hitType = this.data.hitType;
-        const color = hitType === 'critical' ? '#FFD700' : '#FFFFFF';
-        const initialScale = hitType === 'critical' ? '1.5 1.5 1.5' : '1 1 1';
+
+        // MODIFIED: Ghost Text Logic
+        // Critical = Gold, Large (1.5)
+        // Normal = Light Grey, Small (0.8)
+        const color = hitType === 'critical' ? '#FFD700' : '#CCCCCC';
+        const initialScale = hitType === 'critical' ? '1.5 1.5 1.5' : '0.8 0.8 0.8';
 
         // Get starting position
         const currentPos = this.el.getAttribute('position');
@@ -23,8 +27,6 @@ AFRAME.registerComponent('floating-number', {
         this.el.setAttribute('scale', initialScale);
 
         // 2. ORIENTATION (RESTORED OLD LOGIC)
-        // We look at the center of the room (x=0, z=0) but at the text's OWN height (y).
-        // This makes it face inward but keeps it perfectly upright (no tilting up/down).
         this.el.object3D.lookAt(0, currentPos.y, 0);
 
         // 3. CALCULATE DESTINATION
@@ -32,14 +34,12 @@ AFRAME.registerComponent('floating-number', {
         const scoreEl = document.querySelector('#score-display');
 
         if (scoreEl && scoreEl.object3D) {
-            // Force an update to ensure we get the real world coordinates
             scoreEl.object3D.updateMatrixWorld(true);
             scoreEl.object3D.getWorldPosition(targetPos);
             targetPos.z += 0.1; // Offset slightly forward so it doesn't clip
         }
 
         // 4. ANIMATION 1: FLOAT UP (0ms - 500ms)
-        // We use the native A-Frame animation component, just like your old code.
         this.el.setAttribute('animation__float', {
             property: 'position',
             to: `${currentPos.x} ${currentPos.y + 0.25} ${currentPos.z}`,
@@ -48,7 +48,6 @@ AFRAME.registerComponent('floating-number', {
         });
 
         // 5. ANIMATION 2: FLY TO DASHBOARD (500ms - 1200ms)
-        // Triggered after the float completes
         setTimeout(() => {
             // Fly to target
             this.el.setAttribute('animation__fly', {

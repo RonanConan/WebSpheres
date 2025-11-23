@@ -3,7 +3,6 @@ AFRAME.registerComponent('score-manager', {
         this.score = 0;
         this.scoreTextEl = this.el; // Attached to #score-display
         this.progressFillEl = document.querySelector('#progress-fill');
-        // FIXED: Points to restored ID #progress-display
         this.progressTextEl = document.querySelector('#progress-display');
 
         this.leftHandCriticalChance = 0.3;
@@ -59,10 +58,15 @@ AFRAME.registerComponent('score-manager', {
         }
     },
 
-    addPoints: function (amount) {
+    // MODIFIED: Now accepts hitType to control dashboard feedback
+    addPoints: function (amount, hitType) {
         this.score += amount;
         this.updateDisplay();
-        this.triggerPulseAnimation();
+
+        // Only shake/pulse the dashboard on CRITICAL hits
+        if (hitType === 'critical') {
+            this.triggerPulseAnimation();
+        }
     },
 
     triggerPulseAnimation: function () {

@@ -24,7 +24,6 @@ AFRAME.registerComponent('sphere-manager', {
         this.rightJoints = null;
         this.collisionMargin = 0.02;
 
-        // Track whether hands were at home in previous frame
         this.leftWasAtHome = false;
         this.rightWasAtHome = false;
         this.homeTrackingInitialized = false;
@@ -34,7 +33,6 @@ AFRAME.registerComponent('sphere-manager', {
         this.leftController = document.querySelector('[hand-tracking-controls="hand: left"]');
         this.rightController = document.querySelector('[hand-tracking-controls="hand: right"]');
 
-        // Dashboard Elements
         this.scoreDisplay = document.querySelector('#score-display');
         this.progressDisplay = document.querySelector('#progress-display');
         this.sparkleBurst = null;
@@ -47,7 +45,7 @@ AFRAME.registerComponent('sphere-manager', {
             this.rightController.addEventListener('hand-tracking-extras-ready', this._onExtrasReady);
         }
 
-        this.createSpheres(); // Now creates Crystals
+        this.createSpheres();
         this.setupCalibration();
         this.updateTextPositions();
     },
@@ -73,17 +71,12 @@ AFRAME.registerComponent('sphere-manager', {
             let x = this.radius * Math.sin(angle * Math.PI / 180);
             let z = -this.radius * Math.cos(angle * Math.PI / 180);
 
-            // CHANGED: From 'a-sphere' to 'a-octahedron' for the Crystal look
             let crystal = document.createElement('a-octahedron');
             crystal.setAttribute('position', `${x} ${this.height} ${z}`);
-
-            // Crystal Aesthetics: Cyan, Transparent, Shiny
             crystal.setAttribute('material', 'color: #00FFFF; opacity: 0.8; transparent: true; metalness: 0.8; roughness: 0.2');
-            crystal.setAttribute('radius', '0.06'); // Slightly larger to account for angular shape
+            crystal.setAttribute('radius', '0.06');
             crystal.setAttribute('visible', 'false');
-            crystal.setAttribute('id', `sphere-${i}`); // Keeping ID as 'sphere' to maintain compatibility
-
-            // Animation: Gentle spin
+            crystal.setAttribute('id', `sphere-${i}`);
             crystal.setAttribute('animation', 'property: rotation; to: 0 360 0; loop: true; dur: 5000; easing: linear');
 
             this.el.sceneEl.appendChild(crystal);
@@ -102,6 +95,47 @@ AFRAME.registerComponent('sphere-manager', {
             this.el.sceneEl.appendChild(floatingNumber);
         } catch (e) {
             console.warn("Error creating floating number:", e);
+        }
+    },
+
+    // NEW: Creates an expanding ring effect
+    createShockwave: function (position) {
+        try {
+            const ring = document.createElement('a-ring');
+            ring.setAttribute('position', `${position.x} ${position.y} ${position.z}`);
+            ring.setAttribute('radius-inner', '0.05');
+            ring.setAttribute('radius-outer', '0.1');
+            ring.setAttribute('material', 'color: #FFD700; opacity: 0.8; transparent: true; shader: flat');
+
+            // Face the camera so it looks like a perfect circle
+            if (this.el.sceneEl.camera) {
+                ring.object3D.lookAt(this.el.sceneEl.camera.position);
+            }
+
+            // Expand Animation
+            ring.setAttribute('animation', {
+                property: 'scale',
+                to: '4 4 4',
+                dur: 300,
+                easing: 'easeOutQuad'
+            });
+
+            // Fade Out Animation
+            ring.setAttribute('animation__fade', {
+                property: 'opacity',
+                to: '0',
+                dur: 300,
+                easing: 'easeOutQuad'
+            });
+
+            this.el.sceneEl.appendChild(ring);
+
+            // Cleanup
+            setTimeout(() => {
+                if (ring.parentNode) ring.parentNode.removeChild(ring);
+            }, 350);
+        } catch (e) {
+            console.warn("Error creating shockwave:", e);
         }
     },
 
@@ -128,12 +162,9 @@ AFRAME.registerComponent('sphere-manager', {
             if (event.code === 'KeyP') {
                 audioManager.playCalibrationSound('switch');
                 this.resumeGame();
-
                 const startTime = Date.now();
-
                 const kinematicsManager = document.querySelector('#kinematics-manager').components['kinematics-manager'];
                 kinematicsManager.startTracking(startTime);
-
                 const dataManager = document.querySelector('#data-manager').components['data-manager'];
                 dataManager.startSession(startTime);
             }
@@ -174,7 +205,6 @@ AFRAME.registerComponent('sphere-manager', {
     calibrateReach: function () {
         const camera = document.querySelector('a-scene').camera;
         const cameraPos = camera.el.getAttribute('position');
-
         const rightPos = this.getHandPosition(this.rightController);
 
         if (rightPos && cameraPos) {
@@ -183,9 +213,7 @@ AFRAME.registerComponent('sphere-manager', {
                 Math.pow(rightPos.y - cameraPos.y, 2) +
                 Math.pow(rightPos.z - cameraPos.z, 2)
             );
-
             this.radius = Math.max(0.3, 0.8 * distance);
-
             this.updateSpherePositions();
         }
     },
@@ -193,10 +221,8 @@ AFRAME.registerComponent('sphere-manager', {
     calibrateHeight: function () {
         const camera = document.querySelector('a-scene').camera;
         const cameraPos = camera.el.getAttribute('position');
-
         if (cameraPos && cameraPos.y !== undefined) {
             this.height = Math.max(0.5, 0.8 * cameraPos.y);
-
             this.updateSpherePositions();
             this.updateTextPositions();
         }
@@ -209,7 +235,6 @@ AFRAME.registerComponent('sphere-manager', {
         if (leftPos && leftPos.y !== undefined && leftPos.z !== undefined) {
             this.leftRectangle.setAttribute('position', `${leftPos.x} ${leftPos.y} ${leftPos.z + 0.02}`);
         }
-
         if (rightPos && rightPos.y !== undefined && rightPos.z !== undefined) {
             this.rightRectangle.setAttribute('position', `${rightPos.x} ${rightPos.y} ${rightPos.z + 0.02}`);
         }
@@ -224,7 +249,6 @@ AFRAME.registerComponent('sphere-manager', {
 
     updateTextPositions: function () {
         const dashboard = document.querySelector('#holo-dashboard');
-
         if (dashboard) {
             dashboard.setAttribute('position', `0 ${this.height + 0.3} -1.2`);
         } else {
@@ -242,7 +266,6 @@ AFRAME.registerComponent('sphere-manager', {
             let angle = -40 + (i * 8);
             let x = this.radius * Math.sin(angle * Math.PI / 180);
             let z = -this.radius * Math.cos(angle * Math.PI / 180);
-
             this.allSpheres[i].setAttribute('position', `${x} ${this.height} ${z}`);
         }
     },
@@ -270,38 +293,32 @@ AFRAME.registerComponent('sphere-manager', {
 
     switchToShortSession: function () {
         if (this.trialsSwitched) return;
-
         this.appearancesPerSphere = 10;
         this.totalTrials = 110;
         this.trialsSwitched = true;
-
         const dataManager = document.querySelector('#data-manager').components['data-manager'];
         dataManager.updateTotalTrials(110);
     },
 
     setTwoReachesPerSphere: function () {
         if (this.trialsSwitched) return;
-
         this.appearancesPerSphere = 4;
         this.totalTrials = 44;
         this.trialsSwitched = true;
         this.fModeActive = true;
         this.currentPhase = 0;
         this.phaseAppearanceCounts = [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0];
-
         const dataManager = document.querySelector('#data-manager').components['data-manager'];
         dataManager.updateTotalTrials(44);
     },
 
     setBlockMode: function () {
         if (this.trialsSwitched) return;
-
         this.appearancesPerSphere = 2;
         this.totalTrials = 110;
         this.trialsSwitched = true;
         this.bModeActive = true;
         this.phaseAppearanceCounts = [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0];
-
         const dataManager = document.querySelector('#data-manager').components['data-manager'];
         dataManager.updateTotalTrials(110);
     },
@@ -315,20 +332,16 @@ AFRAME.registerComponent('sphere-manager', {
         if (this.currentState === 'waiting-to-appear') {
             this.appearanceCounts[sphereIndex]++;
             this.totalAppearances++;
-
             if (this.fModeActive || this.bModeActive) {
                 this.phaseAppearanceCounts[sphereIndex]++;
-
                 if (this.fModeActive && this.totalAppearances === 22) {
                     this.currentPhase = 1;
                     this.phaseAppearanceCounts = [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0];
                 }
-
                 if (this.bModeActive && this.totalAppearances % 22 === 0) {
                     this.phaseAppearanceCounts = [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0];
                 }
             }
-
             const scoreManager = document.querySelector('#score-display').components['score-manager'];
             scoreManager.updateProgress(this.totalAppearances, this.totalTrials);
         }
@@ -346,7 +359,6 @@ AFRAME.registerComponent('sphere-manager', {
         }
 
         this.activeSphere.setAttribute('visible', false);
-
         this.activeSphere = null;
         this.decisionTimeRecorded = false;
         this.currentState = 'invisible';
@@ -368,7 +380,6 @@ AFRAME.registerComponent('sphere-manager', {
                     availablePositions.push(i);
                 }
             }
-
             if (availablePositions.length === 0) {
                 for (let i = 0; i < 11; i++) {
                     if (this.phaseAppearanceCounts[i] < 2) {
@@ -382,7 +393,6 @@ AFRAME.registerComponent('sphere-manager', {
                     availablePositions.push(i);
                 }
             }
-
             if (availablePositions.length === 0) {
                 for (let i = 0; i < 11; i++) {
                     if (this.appearanceCounts[i] < this.appearancesPerSphere) {
@@ -403,7 +413,6 @@ AFRAME.registerComponent('sphere-manager', {
     startAppearTimer: function () {
         this.appearTimer = setTimeout(() => {
             this.activeSphere.setAttribute('visible', true);
-            // REMOVED: Color setting logic. The crystal material (Cyan) is permanent.
 
             const sphereIndex = this.allSpheres.indexOf(this.activeSphere);
             this.appearanceCounts[sphereIndex]++;
@@ -411,12 +420,10 @@ AFRAME.registerComponent('sphere-manager', {
 
             if (this.fModeActive || this.bModeActive) {
                 this.phaseAppearanceCounts[sphereIndex]++;
-
                 if (this.fModeActive && this.totalAppearances === 22) {
                     this.currentPhase = 1;
                     this.phaseAppearanceCounts = [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0];
                 }
-
                 if (this.bModeActive && this.totalAppearances % 22 === 0) {
                     this.phaseAppearanceCounts = [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0];
                 }
@@ -446,7 +453,6 @@ AFRAME.registerComponent('sphere-manager', {
     },
 
     isInsideSphere: function (handPos, spherePos) {
-        // Radius for collision remains the same (slightly larger than visual crystal)
         const hitRadius = 0.08;
         const distance = Math.sqrt(
             Math.pow(handPos.x - spherePos.x, 2) +
@@ -467,7 +473,6 @@ AFRAME.registerComponent('sphere-manager', {
 
     checkJointCollisions: function (joints, spherePos) {
         if (!joints) return false;
-
         const jointNames = [
             'Wrist',
             'T_Tip', 'T_Distal', 'T_Proximal', 'T_Metacarpal',
@@ -482,14 +487,9 @@ AFRAME.registerComponent('sphere-manager', {
         for (let jointName of jointNames) {
             const joint = joints[jointName];
             if (!joint || !joint.isValid()) continue;
-
             joint.getPosition(jointPos);
-
-            if (this.isInsideSphere(jointPos, spherePos)) {
-                return true;
-            }
+            if (this.isInsideSphere(jointPos, spherePos)) return true;
         }
-
         return false;
     },
 
@@ -499,15 +499,18 @@ AFRAME.registerComponent('sphere-manager', {
         try {
             const scoreManager = document.querySelector('#score-display').components['score-manager'];
             const result = scoreManager.calculateHitPoints(handUsed);
-            scoreManager.addPoints(result.points);
+            // CHANGED: Passing hitType to addPoints so score manager knows when to pulse
+            scoreManager.addPoints(result.points, result.hitType);
 
             // SHATTER EFFECT: Hide crystal IMMEDIATELY
             this.activeSphere.setAttribute('visible', false);
 
             try {
+                // 1. Create Floating Text (Ghost or Normal)
                 this.createFloatingNumber(spherePos, result.points, result.hitType);
 
                 if (result.hitType === 'critical') {
+                    // 2. Sparkles (Existing)
                     if (!this.sparkleBurst) {
                         this.sparkleBurst = document.querySelector('#sparkle-burst');
                     }
@@ -515,6 +518,9 @@ AFRAME.registerComponent('sphere-manager', {
                         const sphereVec3 = new THREE.Vector3(spherePos.x, spherePos.y, spherePos.z);
                         this.sparkleBurst.components['sparkle-system'].createBurst(sphereVec3);
                     }
+
+                    // 3. NEW: Shockwave Ring
+                    this.createShockwave(spherePos);
                 }
             } catch (fxError) {
                 console.warn("FX Generation failed:", fxError);
@@ -541,8 +547,6 @@ AFRAME.registerComponent('sphere-manager', {
 
     tick: function () {
         if (this.isPaused) return;
-
-        // Get hand positions
         const leftPos = this.getHandPosition(this.leftController);
         const rightPos = this.getHandPosition(this.rightController);
         const leftRectPos = this.leftRectangle.getAttribute('position');
@@ -551,7 +555,6 @@ AFRAME.registerComponent('sphere-manager', {
         const leftAtHome = leftPos && this.isInsideRectangle(leftPos, leftRectPos);
         const rightAtHome = rightPos && this.isInsideRectangle(rightPos, rightRectPos);
 
-        // Only start new trial when both hands are at home
         if (this.currentState === 'invisible' && this.totalAppearances < this.totalTrials) {
             if (leftAtHome && rightAtHome) {
                 this.selectRandomSphere();
@@ -562,16 +565,13 @@ AFRAME.registerComponent('sphere-manager', {
             }
         }
 
-        // During visible state, track hands and check for leaving home
         if (this.currentState === 'visible') {
-            // Initialize home tracking on first frame of visible state
             if (!this.homeTrackingInitialized) {
                 this.leftWasAtHome = leftAtHome;
                 this.rightWasAtHome = rightAtHome;
                 this.homeTrackingInitialized = true;
             }
 
-            // Check for hand leaving home (for decision time)
             if (!this.decisionTimeRecorded) {
                 const leftLeftHome = this.leftWasAtHome && !leftAtHome;
                 const rightLeftHome = this.rightWasAtHome && !rightAtHome;
@@ -581,35 +581,21 @@ AFRAME.registerComponent('sphere-manager', {
                     dataManager.stopDecisionTimer();
                     this.decisionTimeRecorded = true;
                 }
-
-                // Update home tracking for next frame
                 this.leftWasAtHome = leftAtHome;
                 this.rightWasAtHome = rightAtHome;
             }
         }
 
-        // Collision detection when sphere is visible
         if (this.currentState === 'visible' && this.activeSphere) {
             const spherePos = this.activeSphere.getAttribute('position');
-
             if (this.leftJoints || this.rightJoints) {
                 const leftCollision = this.checkJointCollisions(this.leftJoints, spherePos);
                 const rightCollision = this.checkJointCollisions(this.rightJoints, spherePos);
-
-                if (leftCollision) {
-                    this.handleHit('LEFT', spherePos);
-                    return;
-                }
-                if (rightCollision) {
-                    this.handleHit('RIGHT', spherePos);
-                    return;
-                }
+                if (leftCollision) { this.handleHit('LEFT', spherePos); return; }
+                if (rightCollision) { this.handleHit('RIGHT', spherePos); return; }
             } else {
-                if (leftPos && this.isInsideSphere(leftPos, spherePos)) {
-                    this.handleHit('LEFT', spherePos);
-                } else if (rightPos && this.isInsideSphere(rightPos, spherePos)) {
-                    this.handleHit('RIGHT', spherePos);
-                }
+                if (leftPos && this.isInsideSphere(leftPos, spherePos)) { this.handleHit('LEFT', spherePos); }
+                else if (rightPos && this.isInsideSphere(rightPos, spherePos)) { this.handleHit('RIGHT', spherePos); }
             }
         }
     }
