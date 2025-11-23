@@ -98,40 +98,39 @@ AFRAME.registerComponent('sphere-manager', {
         }
     },
 
-    // MODIFIED: Now uses a Torus for a better 3D visual
+    // MODIFIED: Torus is now Horizontal, Smaller, Slower, and More Transparent
     createShockwave: function (position) {
         try {
             const torus = document.createElement('a-torus');
             torus.setAttribute('position', `${position.x} ${position.y} ${position.z}`);
 
-            // Dimensions: Small ring with thin tube to start
+            // ORIENTATION: Rotate 90 degrees on X to lie flat (Horizontal)
+            torus.setAttribute('rotation', '90 0 0');
+
+            // Dimensions
             torus.setAttribute('radius', '0.1');
             torus.setAttribute('radius-tubular', '0.01');
-            torus.setAttribute('segments-tubular', '32'); // Smooth it out
+            torus.setAttribute('segments-tubular', '32');
             torus.setAttribute('segments-radial', '16');
 
-            // Visuals: Semi-transparent Gold
-            torus.setAttribute('material', 'color: #FFD700; opacity: 0.6; transparent: true; shader: flat');
+            // VISUALS: Lower opacity (0.4)
+            torus.setAttribute('material', 'color: #FFD700; opacity: 0.4; transparent: true; shader: flat');
 
-            // Orientation: Face the camera to look like a halo/shockwave
-            if (this.el.sceneEl.camera) {
-                torus.object3D.lookAt(this.el.sceneEl.camera.position);
-            }
-
-            // Animation 1: Expand Scale
+            // Animation 1: Expand Scale (Reduced from 6 to 3 for smaller size)
+            // Slower Duration: Increased from 400 to 600
             torus.setAttribute('animation', {
                 property: 'scale',
-                to: '6 6 6', // Expands larger than before to be more visible
-                dur: 400,
+                to: '3 3 3',
+                dur: 600,
                 easing: 'easeOutQuad'
             });
 
-            // Animation 2: Fade Out
+            // Animation 2: Fade Out (Matches new duration)
             torus.setAttribute('animation__fade', {
-                property: 'material.opacity', // Explicitly target material opacity
-                from: 0.6,
+                property: 'material.opacity',
+                from: 0.4,
                 to: 0,
-                dur: 400,
+                dur: 600,
                 easing: 'easeOutQuad'
             });
 
@@ -140,7 +139,7 @@ AFRAME.registerComponent('sphere-manager', {
             // Cleanup
             setTimeout(() => {
                 if (torus.parentNode) torus.parentNode.removeChild(torus);
-            }, 450);
+            }, 650);
         } catch (e) {
             console.warn("Error creating shockwave:", e);
         }
