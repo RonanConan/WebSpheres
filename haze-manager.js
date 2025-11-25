@@ -23,8 +23,8 @@ AFRAME.registerComponent('haze-manager', {
 
         // Layers extend well beyond dashboard (1.4 x 0.6) to create visible glow
         const layerConfigs = [
-            { scaleW: 1.8, scaleH: 0.9, opacity: 0.5, zOffset: -0.01 },
-            { scaleW: 2.2, scaleH: 1.2, opacity: 0.3, zOffset: -0.02 }
+            { scaleW: 1.8, scaleH: 0.9, opacity: 0.55, zOffset: -0.01 },
+            { scaleW: 2.2, scaleH: 1.2, opacity: 0.35, zOffset: -0.02 }
         ];
 
         layerConfigs.forEach((config, index) => {
@@ -47,8 +47,6 @@ AFRAME.registerComponent('haze-manager', {
             dashboard.appendChild(layer);
             this.hazeLayers.push(layer);
         });
-
-        console.log('Haze layers created:', this.hazeLayers.length);
     },
 
     setupListeners: function () {
@@ -136,7 +134,7 @@ AFRAME.registerComponent('haze-manager', {
 
         // Boost opacity for milestone
         this.hazeLayers.forEach(layer => {
-            layer.setAttribute('material', 'opacity', 0.6);
+            layer.setAttribute('material', 'opacity', 0.7);
         });
 
         const colors = ['#FF0000', '#FF7F00', '#FFFF00', '#00FF00', '#0000FF', '#8B00FF'];
