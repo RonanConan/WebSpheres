@@ -207,37 +207,36 @@ AFRAME.registerComponent('sphere-manager', {
             if (!dashboard) return;
 
             const dashPos = dashboard.getAttribute('position');
-            const particleCount = 24;
-            const duration = 1000;
+            const particleCount = 14;
+            const duration = 2500;
             const colors = ['#FF6B6B', '#4ECDC4', '#FFE66D', '#95E1D3', '#F38181', '#AA96DA'];
 
             for (let i = 0; i < particleCount; i++) {
                 const particle = document.createElement('a-plane');
                 const side = i < particleCount / 2 ? -1 : 1;
 
-                const startX = dashPos.x + (side * 0.7);
-                const startY = dashPos.y;
-                const startZ = dashPos.z + 0.1;
+                const startX = dashPos.x + (side * 0.6);
+                const startY = dashPos.y - 0.35;
+                const startZ = dashPos.z + 0.15;
 
                 particle.setAttribute('position', `${startX} ${startY} ${startZ}`);
-                particle.setAttribute('width', '0.03');
-                particle.setAttribute('height', '0.03');
-                particle.setAttribute('rotation', `${Math.random() * 360} ${Math.random() * 360} ${Math.random() * 360}`);
+                particle.setAttribute('width', '0.025');
+                particle.setAttribute('height', '0.025');
+                particle.setAttribute('rotation', `${Math.random() * 360} ${Math.random() * 360} 0`);
 
                 const color = colors[Math.floor(Math.random() * colors.length)];
                 particle.setAttribute('material', `color: ${color}; opacity: 1; transparent: true; shader: flat; side: double`);
 
-                const spreadX = side * (0.3 + Math.random() * 0.4);
-                const spreadY = 0.2 + Math.random() * 0.3;
-                const spreadZ = 0.2 + Math.random() * 0.2;
+                const spreadX = side * (0.2 + Math.random() * 0.3);
+                const spreadY = 0.1 + Math.random() * 0.25;
 
                 const targetX = startX + spreadX;
-                const targetY = startY - 0.3 + spreadY;
-                const targetZ = startZ + spreadZ;
+                const targetY = startY + spreadY - 0.5;
+                const targetZ = startZ + 0.1;
 
                 particle.setAttribute('animation__move', {
                     property: 'position',
-                    to: `${targetX} ${targetY - 0.4} ${targetZ}`,
+                    to: `${targetX} ${targetY} ${targetZ}`,
                     dur: duration,
                     easing: 'easeOutQuad'
                 });
@@ -247,14 +246,7 @@ AFRAME.registerComponent('sphere-manager', {
                     from: 1,
                     to: 0,
                     dur: duration,
-                    easing: 'easeInQuad'
-                });
-
-                particle.setAttribute('animation__spin', {
-                    property: 'rotation',
-                    to: `${Math.random() * 720} ${Math.random() * 720} ${Math.random() * 720}`,
-                    dur: duration,
-                    easing: 'linear'
+                    easing: 'easeInCubic'
                 });
 
                 this.el.sceneEl.appendChild(particle);
