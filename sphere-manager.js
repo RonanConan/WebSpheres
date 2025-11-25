@@ -78,6 +78,15 @@ AFRAME.registerComponent('sphere-manager', {
             crystal.setAttribute('visible', 'false');
             crystal.setAttribute('id', `sphere-${i}`);
             crystal.setAttribute('animation', 'property: rotation; to: 0 360 0; loop: true; dur: 5000; easing: linear');
+            crystal.setAttribute('animation__pulse', {
+                property: 'scale',
+                from: '1 1 1',
+                to: '1.08 1.08 1.08',
+                dir: 'alternate',
+                loop: true,
+                dur: 900,
+                easing: 'easeInOutSine'
+            });
 
             this.el.sceneEl.appendChild(crystal);
             this.allSpheres.push(crystal);
@@ -98,50 +107,97 @@ AFRAME.registerComponent('sphere-manager', {
         }
     },
 
-    // MODIFIED: Torus is now Horizontal, Smaller, Slower, and More Transparent
-    createShockwave: function (position) {
+    createShockwave: function (position, options = {}) {
         try {
+            const color = options.color || '#FFD700';
+            const scaleTo = options.scale || 3;
+            const opacity = options.opacity || 0.4;
+            const duration = options.duration || 600;
+
             const torus = document.createElement('a-torus');
             torus.setAttribute('position', `${position.x} ${position.y} ${position.z}`);
-
-            // ORIENTATION: Rotate 90 degrees on X to lie flat (Horizontal)
             torus.setAttribute('rotation', '90 0 0');
-
-            // Dimensions
             torus.setAttribute('radius', '0.1');
             torus.setAttribute('radius-tubular', '0.01');
             torus.setAttribute('segments-tubular', '32');
             torus.setAttribute('segments-radial', '16');
+            torus.setAttribute('material', `color: ${color}; opacity: ${opacity}; transparent: true; shader: flat`);
 
-            // VISUALS: Lower opacity (0.4)
-            torus.setAttribute('material', 'color: #FFD700; opacity: 0.4; transparent: true; shader: flat');
-
-            // Animation 1: Expand Scale (Reduced from 6 to 3 for smaller size)
-            // Slower Duration: Increased from 400 to 600
             torus.setAttribute('animation', {
                 property: 'scale',
-                to: '3 3 3',
-                dur: 600,
+                to: `${scaleTo} ${scaleTo} ${scaleTo}`,
+                dur: duration,
                 easing: 'easeOutQuad'
             });
 
-            // Animation 2: Fade Out (Matches new duration)
             torus.setAttribute('animation__fade', {
                 property: 'material.opacity',
-                from: 0.4,
+                from: opacity,
                 to: 0,
-                dur: 600,
+                dur: duration,
                 easing: 'easeOutQuad'
             });
 
             this.el.sceneEl.appendChild(torus);
 
-            // Cleanup
             setTimeout(() => {
                 if (torus.parentNode) torus.parentNode.removeChild(torus);
-            }, 650);
+            }, duration + 50);
         } catch (e) {
             console.warn("Error creating shockwave:", e);
+        }
+    },
+
+    createShatterEffect: function (position) {
+        try {
+            const fragmentCount = 6 + Math.floor(Math.random() * 3);
+            const duration = 500;
+
+            for (let i = 0; i < fragmentCount; i++) {
+                const fragment = document.createElement('a-octahedron');
+                fragment.setAttribute('position', `${position.x} ${position.y} ${position.z}`);
+                fragment.setAttribute('radius', '0.015');
+                fragment.setAttribute('material', 'color: #00FFFF; opacity: 0.8; transparent: true; metalness: 0.8; roughness: 0.2');
+
+                const theta = Math.random() * Math.PI * 2;
+                const phi = Math.acos(2 * Math.random() - 1);
+                const distance = 0.25 + Math.random() * 0.1;
+
+                const targetX = position.x + distance * Math.sin(phi) * Math.cos(theta);
+                const targetY = position.y + distance * Math.sin(phi) * Math.sin(theta);
+                const targetZ = position.z + distance * Math.cos(phi);
+
+                fragment.setAttribute('animation__move', {
+                    property: 'position',
+                    to: `${targetX} ${targetY} ${targetZ}`,
+                    dur: duration,
+                    easing: 'easeOutQuad'
+                });
+
+                fragment.setAttribute('animation__fade', {
+                    property: 'material.opacity',
+                    from: 0.8,
+                    to: 0,
+                    dur: duration,
+                    easing: 'easeInQuad'
+                });
+
+                fragment.setAttribute('animation__shrink', {
+                    property: 'scale',
+                    from: '1 1 1',
+                    to: '0.5 0.5 0.5',
+                    dur: duration,
+                    easing: 'easeInQuad'
+                });
+
+                this.el.sceneEl.appendChild(fragment);
+
+                setTimeout(() => {
+                    if (fragment.parentNode) fragment.parentNode.removeChild(fragment);
+                }, duration + 50);
+            }
+        } catch (e) {
+            console.warn("Error creating shatter effect:", e);
         }
     },
 
@@ -507,15 +563,18 @@ AFRAME.registerComponent('sphere-manager', {
             const result = scoreManager.calculateHitPoints(handUsed);
             scoreManager.addPoints(result.points, result.hitType);
 
-            // SHATTER EFFECT: Hide crystal IMMEDIATELY
             this.activeSphere.setAttribute('visible', false);
 
             try {
-                // 1. Create Floating Text (Ghost or Normal)
                 this.createFloatingNumber(spherePos, result.points, result.hitType);
 
                 if (result.hitType === 'critical') {
-                    // 2. Sparkles (Existing)
+                    this.createShockwave(spherePos, { color: '#FFD700', scale: 3, opacity: 0.4 });
+                } else {
+                    this.createShockwave(spherePos, { color: '#888888', scale: 1.5, opacity: 0.2 });
+                }
+
+                if (result.hitType === 'critical') {
                     if (!this.sparkleBurst) {
                         this.sparkleBurst = document.querySelector('#sparkle-burst');
                     }
@@ -524,8 +583,7 @@ AFRAME.registerComponent('sphere-manager', {
                         this.sparkleBurst.components['sparkle-system'].createBurst(sphereVec3);
                     }
 
-                    // 3. NEW: Shockwave Torus
-                    this.createShockwave(spherePos);
+                    this.createShatterEffect(spherePos);
                 }
             } catch (fxError) {
                 console.warn("FX Generation failed:", fxError);
