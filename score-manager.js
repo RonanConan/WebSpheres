@@ -18,9 +18,6 @@ AFRAME.registerComponent('score-manager', {
         this.rightHandCriticalChance = 0.3;
         this.currentCondition = 1;
         this.dominantHand = 'LEFT';
-
-        // Milestone tracking
-        this.lastMilestone = 0;
     },
 
     toggleCondition: function () {
@@ -70,25 +67,10 @@ AFRAME.registerComponent('score-manager', {
     },
 
     addPoints: function (amount, hitType) {
-        const previousScore = this.score;
         this.score += amount;
         this.updateDisplay();
 
         const audioManager = document.querySelector('#audio-manager').components['audio-manager'];
-
-        // Emit haze events
-        if (hitType === 'critical') {
-            this.el.sceneEl.emit('haze-critical-hit');
-        } else {
-            this.el.sceneEl.emit('haze-normal-hit');
-        }
-
-        // Check for 100-point milestone
-        const previousMilestone = Math.floor(previousScore / 100);
-        const currentMilestone = Math.floor(this.score / 100);
-        if (currentMilestone > previousMilestone) {
-            this.el.sceneEl.emit('haze-milestone');
-        }
 
         // === STREAK LOGIC ===
         if (hitType === 'critical') {
