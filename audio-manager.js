@@ -4,9 +4,22 @@ AFRAME.registerComponent('audio-manager', {
     },
 
     createSounds: function () {
-        // --- Existing Sounds ---
-        this.normalSound = new Audio('sounds/normal-hit.mp3');
-        this.criticalSound = new Audio('sounds/critical-hit.mp3');
+        // --- Hit Sounds (randomized) ---
+        this.normalSounds = [
+            new Audio('sounds/normal-hit-1.mp3'),
+            new Audio('sounds/normal-hit-2.mp3'),
+            new Audio('sounds/normal-hit-3.mp3'),
+            new Audio('sounds/normal-hit-4.mp3')
+        ];
+
+        this.criticalSounds = [
+            new Audio('sounds/critical-hit-1.mp3'),
+            new Audio('sounds/critical-hit-2.mp3'),
+            new Audio('sounds/critical-hit-3.mp3'),
+            new Audio('sounds/critical-hit-4.mp3')
+        ];
+
+        // --- Calibration Sounds ---
         this.reachCalibrationSound = new Audio('sounds/reach-calibration.mp3');
         this.heightCalibrationSound = new Audio('sounds/height-calibration.mp3');
         this.lapCalibrationSound = new Audio('sounds/lap-calibration.mp3');
@@ -17,7 +30,6 @@ AFRAME.registerComponent('audio-manager', {
         // --- Streak Sounds ---
         this.hissSound = new Audio('sounds/hiss.mp3');
 
-        // Array of voice lines for random selection
         this.streakVoices = [
             new Audio('sounds/fire.mp3'),
             new Audio('sounds/great.mp3'),
@@ -25,7 +37,6 @@ AFRAME.registerComponent('audio-manager', {
             new Audio('sounds/wow.mp3')
         ];
 
-        // Preload all
         this.streakVoices.forEach(sound => sound.preload = 'auto');
 
         // --- Block Complete Sound ---
@@ -34,15 +45,18 @@ AFRAME.registerComponent('audio-manager', {
 
     playHitSound: function (hitType) {
         if (hitType === 'normal') {
-            this.normalSound.currentTime = 0;
-            this.normalSound.play();
+            const randomIndex = Math.floor(Math.random() * this.normalSounds.length);
+            const sound = this.normalSounds[randomIndex];
+            sound.currentTime = 0;
+            sound.play();
         } else if (hitType === 'critical') {
-            this.criticalSound.currentTime = 0;
-            this.criticalSound.play();
+            const randomIndex = Math.floor(Math.random() * this.criticalSounds.length);
+            const sound = this.criticalSounds[randomIndex];
+            sound.currentTime = 0;
+            sound.play();
         }
     },
 
-    // Randomly plays one of the 4 motivational lines
     playFireVoice: function () {
         const randomIndex = Math.floor(Math.random() * this.streakVoices.length);
         const sound = this.streakVoices[randomIndex];
@@ -50,13 +64,11 @@ AFRAME.registerComponent('audio-manager', {
         sound.play();
     },
 
-    // Plays the cooldown hiss
     playStreakBreak: function () {
         this.hissSound.currentTime = 0;
         this.hissSound.play();
     },
 
-    // Plays confetti sound for block completion
     playConfettiSound: function () {
         this.confettiSound.currentTime = 0;
         this.confettiSound.play();
