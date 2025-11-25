@@ -14,7 +14,7 @@ AFRAME.registerComponent('audio-manager', {
         this.leftHandSound = new Audio('sounds/left-hand.mp3');
         this.rightHandSound = new Audio('sounds/right-hand.mp3');
 
-        // --- NEW: Streak Sounds ---
+        // --- Streak Sounds ---
         this.hissSound = new Audio('sounds/hiss.mp3');
 
         // Array of voice lines for random selection
@@ -27,6 +27,9 @@ AFRAME.registerComponent('audio-manager', {
 
         // Preload all
         this.streakVoices.forEach(sound => sound.preload = 'auto');
+
+        // --- Block Complete Sound ---
+        this.confettiSound = new Audio('sounds/confetti.mp3');
     },
 
     playHitSound: function (hitType) {
@@ -39,7 +42,7 @@ AFRAME.registerComponent('audio-manager', {
         }
     },
 
-    // NEW: Randomly plays one of the 4 motivational lines
+    // Randomly plays one of the 4 motivational lines
     playFireVoice: function () {
         const randomIndex = Math.floor(Math.random() * this.streakVoices.length);
         const sound = this.streakVoices[randomIndex];
@@ -47,10 +50,16 @@ AFRAME.registerComponent('audio-manager', {
         sound.play();
     },
 
-    // NEW: Plays the cooldown hiss
+    // Plays the cooldown hiss
     playStreakBreak: function () {
         this.hissSound.currentTime = 0;
         this.hissSound.play();
+    },
+
+    // Plays confetti sound for block completion
+    playConfettiSound: function () {
+        this.confettiSound.currentTime = 0;
+        this.confettiSound.play();
     },
 
     playCalibrationSound: function (soundType) {
