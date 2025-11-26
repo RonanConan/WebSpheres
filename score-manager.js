@@ -5,12 +5,10 @@ AFRAME.registerComponent('score-manager', {
         this.progressFillEl = document.querySelector('#progress-fill');
         this.progressTextEl = document.querySelector('#progress-display');
 
-        // NEW: Visual Elements for Streak
         this.dashboardContainer = document.querySelector('#holo-dashboard');
         this.dashboardBg = document.querySelector('#dashboard-bg');
         this.dashboardBorders = document.querySelectorAll('.dashboard-border');
 
-        // NEW: Streak State
         this.currentStreak = 0;
         this.isFireMode = false;
 
@@ -18,6 +16,9 @@ AFRAME.registerComponent('score-manager', {
         this.rightHandCriticalChance = 0.3;
         this.currentCondition = 1;
         this.dominantHand = 'LEFT';
+
+        // Milestone tracking - persisted
+        this.lastMilestoneReached = 0;
     },
 
     toggleCondition: function () {
@@ -72,20 +73,30 @@ AFRAME.registerComponent('score-manager', {
 
         const audioManager = document.querySelector('#audio-manager').components['audio-manager'];
 
+        // Check for 100-point milestone FIRST
+        const currentMilestone = Math.floor(this.score / 100);
+        if (currentMilestone > this.lastMilestoneReached) {
+            this.lastMilestoneReached = currentMilestone;
+            this.el.sceneEl.emit('haze-milestone');
+        } else if (hitType === 'critical') {
+            // Only emit critical if no milestone
+            this.el.sceneEl.emit('haze-critical-hit');
+        } else {
+            // Only emit normal if no milestone
+            this.el.sceneEl.emit('haze-normal-hit');
+        }
+
         // === STREAK LOGIC ===
         if (hitType === 'critical') {
             this.currentStreak++;
 
-            // Check for Fire Mode Entry (Streak 3)
             if (this.currentStreak === 3 && !this.isFireMode) {
                 this.enterFireMode(audioManager);
             }
 
-            // Shake dashboard on criticals (Visual feedback)
             this.triggerPulseAnimation();
 
         } else {
-            // Normal hit breaks the streak
             if (this.isFireMode) {
                 this.exitFireMode(audioManager);
             }
@@ -96,33 +107,28 @@ AFRAME.registerComponent('score-manager', {
     enterFireMode: function (audioManager) {
         this.isFireMode = true;
 
-        // 1. Play Random Voice Line
         audioManager.playFireVoice();
 
-        // 2. Morph Background Color (Black -> Dark Orange)
         this.dashboardBg.setAttribute('animation__color', {
             property: 'material.color',
-            to: '#551100', // Dark burning orange background
+            to: '#551100',
             dur: 500,
             easing: 'easeOutQuad'
         });
 
-        // 3. Morph Border Colors (Cyan -> Bright Orange)
         this.dashboardBorders.forEach(border => {
             border.setAttribute('animation__color', {
                 property: 'material.color',
-                to: '#FF4500', // Orange Red
+                to: '#FF4500',
                 dur: 500,
                 easing: 'easeOutQuad'
             });
         });
 
-        // 4. Start Gentle Pulsating (Heartbeat)
-        // We animate the scale of the whole dashboard slightly
         this.dashboardContainer.setAttribute('animation__heartbeat', {
             property: 'scale',
             from: '1 1 1',
-            to: '1.02 1.02 1.02', // Subtle breath
+            to: '1.02 1.02 1.02',
             dur: 1000,
             dir: 'alternate',
             loop: true,
@@ -133,18 +139,15 @@ AFRAME.registerComponent('score-manager', {
     exitFireMode: function (audioManager) {
         this.isFireMode = false;
 
-        // 1. Play Hiss Sound
         audioManager.playStreakBreak();
 
-        // 2. Revert Background (Dark Orange -> Black)
         this.dashboardBg.setAttribute('animation__color', {
             property: 'material.color',
             to: '#000000',
-            dur: 800, // Slower fade out (cooling down)
+            dur: 800,
             easing: 'easeOutQuad'
         });
 
-        // 3. Revert Borders (Bright Orange -> Cyan)
         this.dashboardBorders.forEach(border => {
             border.setAttribute('animation__color', {
                 property: 'material.color',
@@ -154,13 +157,11 @@ AFRAME.registerComponent('score-manager', {
             });
         });
 
-        // 4. Stop Pulsating
         this.dashboardContainer.removeAttribute('animation__heartbeat');
-        this.dashboardContainer.setAttribute('scale', '1 1 1'); // Reset size
+        this.dashboardContainer.setAttribute('scale', '1 1 1');
     },
 
     triggerPulseAnimation: function () {
-        // "Punch" animation for score text (separate from the gentle heartbeat)
         this.scoreTextEl.removeAttribute('animation__pulse');
         this.scoreTextEl.setAttribute('animation__pulse', {
             property: 'scale',
