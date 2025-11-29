@@ -28,8 +28,8 @@ AFRAME.registerComponent('sphere-manager', {
         this.rightWasAtHome = false;
         this.homeTrackingInitialized = false;
 
-        this.leftRectangle = document.querySelector('#left-rectangle');
-        this.rightRectangle = document.querySelector('#right-rectangle');
+        // Single home rectangle
+        this.homeRectangle = document.querySelector('#home-rectangle');
         this.leftController = document.querySelector('[hand-tracking-controls="hand: left"]');
         this.rightController = document.querySelector('[hand-tracking-controls="hand: right"]');
 
@@ -353,12 +353,22 @@ AFRAME.registerComponent('sphere-manager', {
         const leftPos = this.getHandPosition(this.leftController);
         const rightPos = this.getHandPosition(this.rightController);
 
-        if (leftPos && leftPos.y !== undefined && leftPos.z !== undefined) {
-            this.leftRectangle.setAttribute('position', `${leftPos.x} ${leftPos.y} ${leftPos.z + 0.02}`);
+        // Keep x centered at 0, average y and z from both hands
+        let newY = 0.9;
+        let newZ = -0.4;
+
+        if (leftPos && rightPos) {
+            newY = (leftPos.y + rightPos.y) / 2;
+            newZ = ((leftPos.z + rightPos.z) / 2) + 0.02;
+        } else if (leftPos) {
+            newY = leftPos.y;
+            newZ = leftPos.z + 0.02;
+        } else if (rightPos) {
+            newY = rightPos.y;
+            newZ = rightPos.z + 0.02;
         }
-        if (rightPos && rightPos.y !== undefined && rightPos.z !== undefined) {
-            this.rightRectangle.setAttribute('position', `${rightPos.x} ${rightPos.y} ${rightPos.z + 0.02}`);
-        }
+
+        this.homeRectangle.setAttribute('position', `0 ${newY} ${newZ}`);
     },
 
     saveData: function () {
@@ -583,13 +593,37 @@ AFRAME.registerComponent('sphere-manager', {
         return distance < hitRadius;
     },
 
-    isInsideRectangle: function (handPos, rectanglePos) {
-        const width = 0.12;
-        const height = 0.045;
-        const depth = 0.09;
-        return Math.abs(handPos.x - rectanglePos.x) < width &&
-            Math.abs(handPos.y - rectanglePos.y) < height &&
-            Math.abs(handPos.z - rectanglePos.z) < depth;
+    isInsideRectangle: function (pos, rectanglePos) {
+        // Half-dimensions for single centered box (0.8 x 0.12 x 0.22)
+        const width = 0.4;
+        const height = 0.06;
+        const depth = 0.11;
+        return Math.abs(pos.x - rectanglePos.x) < width &&
+            Math.abs(pos.y - rectanglePos.y) < height &&
+            Math.abs(pos.z - rectanglePos.z) < depth;
+    },
+
+    isAnyJointInsideRectangle: function (joints, rectanglePos) {
+        if (!joints) return false;
+
+        const jointNames = [
+            'Wrist',
+            'T_Tip', 'T_Distal', 'T_Proximal', 'T_Metacarpal',
+            'I_Tip', 'I_Distal', 'I_Intermediate', 'I_Proximal', 'I_Metacarpal',
+            'M_Tip', 'M_Distal', 'M_Intermediate', 'M_Proximal', 'M_Metacarpal',
+            'R_Tip', 'R_Distal', 'R_Intermediate', 'R_Proximal', 'R_Metacarpal',
+            'L_Tip', 'L_Distal', 'L_Intermediate', 'L_Proximal', 'L_Metacarpal'
+        ];
+
+        const jointPos = new THREE.Vector3();
+
+        for (let jointName of jointNames) {
+            const joint = joints[jointName];
+            if (!joint || !joint.isValid()) continue;
+            joint.getPosition(jointPos);
+            if (this.isInsideRectangle(jointPos, rectanglePos)) return true;
+        }
+        return false;
     },
 
     checkJointCollisions: function (joints, spherePos) {
@@ -675,13 +709,28 @@ AFRAME.registerComponent('sphere-manager', {
 
     tick: function () {
         if (this.isPaused) return;
-        const leftPos = this.getHandPosition(this.leftController);
-        const rightPos = this.getHandPosition(this.rightController);
-        const leftRectPos = this.leftRectangle.getAttribute('position');
-        const rightRectPos = this.rightRectangle.getAttribute('position');
 
-        const leftAtHome = leftPos && this.isInsideRectangle(leftPos, leftRectPos);
-        const rightAtHome = rightPos && this.isInsideRectangle(rightPos, rightRectPos);
+        const homeRectPos = this.homeRectangle.getAttribute('position');
+
+        // Check if each hand has ANY joint inside the single home box
+        let leftAtHome = false;
+        let rightAtHome = false;
+
+        if (this.leftJoints) {
+            leftAtHome = this.isAnyJointInsideRectangle(this.leftJoints, homeRectPos);
+        } else {
+            // Fallback to fingertip if joints not available
+            const leftPos = this.getHandPosition(this.leftController);
+            leftAtHome = leftPos && this.isInsideRectangle(leftPos, homeRectPos);
+        }
+
+        if (this.rightJoints) {
+            rightAtHome = this.isAnyJointInsideRectangle(this.rightJoints, homeRectPos);
+        } else {
+            // Fallback to fingertip if joints not available
+            const rightPos = this.getHandPosition(this.rightController);
+            rightAtHome = rightPos && this.isInsideRectangle(rightPos, homeRectPos);
+        }
 
         if (this.currentState === 'invisible' && this.totalAppearances < this.totalTrials) {
             if (leftAtHome && rightAtHome) {
@@ -722,6 +771,8 @@ AFRAME.registerComponent('sphere-manager', {
                 if (leftCollision) { this.handleHit('LEFT', spherePos); return; }
                 if (rightCollision) { this.handleHit('RIGHT', spherePos); return; }
             } else {
+                const leftPos = this.getHandPosition(this.leftController);
+                const rightPos = this.getHandPosition(this.rightController);
                 if (leftPos && this.isInsideSphere(leftPos, spherePos)) { this.handleHit('LEFT', spherePos); }
                 else if (rightPos && this.isInsideSphere(rightPos, spherePos)) { this.handleHit('RIGHT', spherePos); }
             }

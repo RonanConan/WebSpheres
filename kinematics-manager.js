@@ -7,8 +7,7 @@ AFRAME.registerComponent('kinematics-manager', {
         
         this.leftController = document.querySelector('[hand-tracking-controls="hand: left"]');
         this.rightController = document.querySelector('[hand-tracking-controls="hand: right"]');
-        this.leftRectangle = document.querySelector('#left-rectangle');
-        this.rightRectangle = document.querySelector('#right-rectangle');
+        this.homeRectangle = document.querySelector('#home-rectangle');
     },
     
     startTracking: function(startTime) {
@@ -24,8 +23,7 @@ AFRAME.registerComponent('kinematics-manager', {
         const leftPos = this.getHandPosition(this.leftController);
         const rightPos = this.getHandPosition(this.rightController);
         
-        const leftRectPos = this.leftRectangle.getAttribute('position');
-        const rightRectPos = this.rightRectangle.getAttribute('position');
+        const homePos = this.homeRectangle.getAttribute('position');
         
         // Get active sphere position
         const sphereManager = document.querySelector('#sphere-manager').components['sphere-manager'];
@@ -46,9 +44,9 @@ AFRAME.registerComponent('kinematics-manager', {
                 handX: leftPos.x,
                 handY: leftPos.y,
                 handZ: leftPos.z,
-                homeX: leftRectPos.x,
-                homeY: leftRectPos.y,
-                homeZ: leftRectPos.z,
+                homeX: homePos.x,
+                homeY: homePos.y,
+                homeZ: homePos.z,
                 targetX: targetX,
                 targetY: targetY,
                 targetZ: targetZ
@@ -61,9 +59,9 @@ AFRAME.registerComponent('kinematics-manager', {
                 handX: rightPos.x,
                 handY: rightPos.y,
                 handZ: rightPos.z,
-                homeX: rightRectPos.x,
-                homeY: rightRectPos.y,
-                homeZ: rightRectPos.z,
+                homeX: homePos.x,
+                homeY: homePos.y,
+                homeZ: homePos.z,
                 targetX: targetX,
                 targetY: targetY,
                 targetZ: targetZ
