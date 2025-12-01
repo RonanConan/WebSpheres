@@ -265,15 +265,15 @@ AFRAME.registerComponent('sphere-manager', {
             const audioManager = document.querySelector('#audio-manager').components['audio-manager'];
 
             if (event.code === 'Space') {
-                audioManager.playCalibrationSound('reach-calibration');
+                audioManager.playCalibrationSound('switch');
                 this.calibrateReach();
             }
             if (event.code === 'KeyH') {
-                audioManager.playCalibrationSound('height-calibration');
+                audioManager.playCalibrationSound('switch');
                 this.calibrateHeight();
             }
             if (event.code === 'KeyL') {
-                audioManager.playCalibrationSound('lap-calibration');
+                audioManager.playCalibrationSound('switch');
                 this.calibrateLap();
             }
             if (event.code === 'KeyS') {
