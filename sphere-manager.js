@@ -9,7 +9,7 @@ AFRAME.registerComponent('sphere-manager', {
         this.totalAppearances = 0;
         this.decisionTimeRecorded = false;
         this.lastSelectedPosition = -1;
-        this.radius = 0.7;
+        this.radius = 0.55;
         this.height = 1.2;
         this.isPaused = true;
         this.appearancesPerSphere = 32;
