@@ -87,22 +87,32 @@ AFRAME.registerComponent('score-manager', {
         }
 
         // === STREAK LOGIC ===
-        // Break streak if dominant hand is used (ANY hit type)
         if (handUsed === this.dominantHand) {
+            // Dominant hand always breaks streak
             if (this.isFireMode) {
                 this.exitFireMode(audioManager);
             }
             this.currentStreak = 0;
         } else {
-            // Non-dominant hand used
-            if (hitType === 'critical') {
-                this.currentStreak++;
-                if (this.currentStreak === 3 && !this.isFireMode) {
-                    this.enterFireMode(audioManager);
+            // Non-dominant hand
+            if (this.isFireMode) {
+                // Phase 2: Already in fire mode - any non-dominant hit maintains it
+                if (hitType === 'critical') {
+                    this.triggerPulseAnimation();
                 }
-                this.triggerPulseAnimation();
+            } else {
+                // Phase 1: Building toward fire mode - strict consecutive
+                if (hitType === 'critical') {
+                    this.currentStreak++;
+                    if (this.currentStreak === 3) {
+                        this.enterFireMode(audioManager);
+                    }
+                    this.triggerPulseAnimation();
+                } else {
+                    // Normal hit while building - reset
+                    this.currentStreak = 0;
+                }
             }
-            // Normal hit with non-dominant hand: streak continues without increment
         }
     },
 
