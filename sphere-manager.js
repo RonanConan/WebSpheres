@@ -654,7 +654,7 @@ AFRAME.registerComponent('sphere-manager', {
         try {
             const scoreManager = document.querySelector('#score-display').components['score-manager'];
             const result = scoreManager.calculateHitPoints(handUsed);
-            scoreManager.addPoints(result.points, result.hitType);
+            scoreManager.addPoints(result.points, result.hitType, handUsed);
 
             this.activeSphere.setAttribute('visible', false);
 
