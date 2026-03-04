@@ -67,7 +67,7 @@ AFRAME.registerComponent('score-manager', {
         }
     },
 
-    addPoints: function (amount, hitType) {
+    addPoints: function (amount, hitType, handUsed) {
         this.score += amount;
         this.updateDisplay();
 
@@ -97,10 +97,14 @@ AFRAME.registerComponent('score-manager', {
             this.triggerPulseAnimation();
 
         } else {
-            if (this.isFireMode) {
-                this.exitFireMode(audioManager);
+            // Normal hit: only break if dominant hand was used
+            if (handUsed === this.dominantHand) {
+                if (this.isFireMode) {
+                    this.exitFireMode(audioManager);
+                }
+                this.currentStreak = 0;
             }
-            this.currentStreak = 0;
+            // If non-dominant hand was used with normal hit, streak continues
         }
     },
 
