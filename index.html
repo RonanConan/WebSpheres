@@ -9,6 +9,7 @@
             THREE.Math = THREE.MathUtils;
         }
     </script>
+    <script src="https://cdn.jsdelivr.net/npm/peerjs@1.5.4/dist/peerjs.min.js"></script>
 
     <!-- Custom Components -->
     <script src="sparkle-system.js"></script>
@@ -20,6 +21,7 @@
     <script src="floating-number.js"></script>
     <script src="kinematics-manager.js"></script>
     <script src="haze-manager.js"></script>
+    <script src="spectator-manager.js"></script>
 </head>
 
 <body>
@@ -68,6 +70,7 @@
         <a-entity id="kinematics-manager" kinematics-manager></a-entity>
         <a-entity id="sphere-manager" sphere-manager></a-entity>
         <a-entity id="haze-manager" haze-manager></a-entity>
+        <a-entity id="spectator-manager" spectator-manager></a-entity>
 
         <a-entity id="sparkle-burst" sparkle-system="count: 40; color: #FFD700; lifetime: 800"></a-entity>
 
