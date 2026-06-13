@@ -241,6 +241,13 @@
                         margin-top: 8px; font-size: 10px; color: #555;
                         border-top: 1px solid #1a1a1a; padding-top: 6px;
                     }
+                    #ws-hint-title { color: #555; margin-bottom: 5px; }
+                    #ws-keys {
+                        display: grid; grid-template-columns: auto 1fr;
+                        gap: 3px 10px;
+                    }
+                    .ws-k { color: #00cccc; }
+                    .ws-d { color: #666; }
                 `;
                 document.head.appendChild(style);
 
@@ -258,7 +265,23 @@
                         <div class="ws-cam-btn" data-mode="topdown">Top-Down</div>
                         <div class="ws-cam-btn" data-mode="side">Side</div>
                     </div>
-                    <div id="ws-hint">All keys relay to VR headset</div>
+                    <div id="ws-hint">
+                        <div id="ws-hint-title">Keys → VR headset</div>
+                        <div id="ws-keys">
+                            <span class="ws-k">Space</span><span class="ws-d">Calibrate reach</span>
+                            <span class="ws-k">H</span><span class="ws-d">Calibrate height</span>
+                            <span class="ws-k">L</span><span class="ws-d">Calibrate lap</span>
+                            <span class="ws-k">S</span><span class="ws-d">Save data</span>
+                            <span class="ws-k">P</span><span class="ws-d">Start / Resume</span>
+                            <span class="ws-k">C</span><span class="ws-d">Toggle condition</span>
+                            <span class="ws-k">1</span><span class="ws-d">Dominant: Left</span>
+                            <span class="ws-k">2</span><span class="ws-d">Dominant: Right</span>
+                            <span class="ws-k">N</span><span class="ws-d">Short session</span>
+                            <span class="ws-k">F</span><span class="ws-d">F-Mode</span>
+                            <span class="ws-k">B</span><span class="ws-d">Block mode</span>
+                            <span class="ws-k">Z</span><span class="ws-d">Skip target</span>
+                        </div>
+                    </div>
                 `;
                 document.body.appendChild(overlay);
 
