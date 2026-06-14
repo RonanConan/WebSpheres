@@ -93,12 +93,12 @@ AFRAME.registerComponent('spectator-manager', {
         const q = pose.transform.orientation;
         const headQuat = new THREE.Quaternion(q.x, q.y, q.z, q.w);
         const euler = new THREE.Euler().setFromQuaternion(headQuat, 'YXZ');
-        const yawQuat = new THREE.Quaternion().setFromEuler(new THREE.Euler(0, euler.y, 0));
+        const inverseYaw = new THREE.Quaternion().setFromEuler(new THREE.Euler(0, -euler.y, 0));
 
         const p = pose.transform.position;
         const offsetTransform = new XRRigidTransform(
-            { x: p.x, y: 0, z: p.z, w: 1 },
-            { x: yawQuat.x, y: yawQuat.y, z: yawQuat.z, w: yawQuat.w }
+            { x: -p.x, y: 0, z: -p.z, w: 1 },
+            { x: inverseYaw.x, y: inverseYaw.y, z: inverseYaw.z, w: inverseYaw.w }
         );
 
         renderer.xr.setReferenceSpace(refSpace.getOffsetReferenceSpace(offsetTransform));
