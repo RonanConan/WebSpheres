@@ -2,6 +2,7 @@ AFRAME.registerComponent('spectator-manager', {
     init: function () {
         this.connections = [];
         this.lastSendTime = 0;
+        this.recentrePending = false;
         this.vec = new THREE.Vector3();
         this.pos = new THREE.Vector3();
         this.quat = new THREE.Quaternion();
@@ -51,7 +52,9 @@ AFRAME.registerComponent('spectator-manager', {
             conn.on('data', (rawData) => {
                 try {
                     const data = JSON.parse(rawData);
-                    if (data.code) {
+                    if (data.code === 'KeyR') {
+                        this.recentrePending = true;
+                    } else if (data.code) {
                         document.dispatchEvent(new KeyboardEvent('keydown', { code: data.code, bubbles: true }));
                     }
                 } catch (e) {}
@@ -76,7 +79,37 @@ AFRAME.registerComponent('spectator-manager', {
         return positions;
     },
 
+    doRecentre: function () {
+        const renderer = this.el.sceneEl.renderer;
+        const frame = this.el.sceneEl.frame;
+        if (!frame || !renderer?.xr) return;
+
+        const refSpace = renderer.xr.getReferenceSpace();
+        if (!refSpace) return;
+
+        const pose = frame.getViewerPose(refSpace);
+        if (!pose) return;
+
+        const q = pose.transform.orientation;
+        const headQuat = new THREE.Quaternion(q.x, q.y, q.z, q.w);
+        const euler = new THREE.Euler().setFromQuaternion(headQuat, 'YXZ');
+        const yawQuat = new THREE.Quaternion().setFromEuler(new THREE.Euler(0, euler.y, 0));
+
+        const p = pose.transform.position;
+        const offsetTransform = new XRRigidTransform(
+            { x: p.x, y: 0, z: p.z, w: 1 },
+            { x: yawQuat.x, y: yawQuat.y, z: yawQuat.z, w: yawQuat.w }
+        );
+
+        renderer.xr.setReferenceSpace(refSpace.getOffsetReferenceSpace(offsetTransform));
+    },
+
     tick: function (time) {
+        if (this.recentrePending) {
+            this.recentrePending = false;
+            this.doRecentre();
+        }
+
         if (this.connections.length === 0) return;
         if (time - this.lastSendTime < 33) return;
         this.lastSendTime = time;
