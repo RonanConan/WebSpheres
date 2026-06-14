@@ -237,6 +237,14 @@
                         border-radius: 4px; font-size: 11px; font-family: monospace;
                     }
                     .ws-cam-btn:hover { background: #444; }
+                    #ws-recentre {
+                        width: 100%; margin-top: 6px; padding: 6px;
+                        border: 1px solid #ffaa00; background: #1a1100;
+                        color: #ffaa00; cursor: pointer; border-radius: 4px;
+                        font-size: 12px; font-family: monospace; box-sizing: border-box;
+                    }
+                    #ws-recentre:hover:not(:disabled) { background: #2a1a00; }
+                    #ws-recentre:disabled { border-color: #333; color: #444; background: #111; cursor: not-allowed; }
                     #ws-hint {
                         margin-top: 8px; font-size: 10px; color: #555;
                         border-top: 1px solid #1a1a1a; padding-top: 6px;
@@ -265,6 +273,7 @@
                         <div class="ws-cam-btn" data-mode="topdown">Top-Down</div>
                         <div class="ws-cam-btn" data-mode="side">Side</div>
                     </div>
+                    <button id="ws-recentre">⊕ Recentre View</button>
                     <div id="ws-hint">
                         <div id="ws-hint-title">Keys → VR headset</div>
                         <div id="ws-keys">
@@ -296,6 +305,13 @@
                 this.domEl    = document.getElementById('ws-dom');
                 this.fireEl   = document.getElementById('ws-fire');
 
+                this.recentreBtn = document.getElementById('ws-recentre');
+                this.recentreBtn.addEventListener('click', () => {
+                    if (this.conn && this.conn.open) {
+                        this.conn.send(JSON.stringify({ code: 'KeyR' }));
+                    }
+                });
+
                 this.switchMode('pov');
             },
 
@@ -315,6 +331,7 @@
                     this.fireEl.textContent = data.fireMode ? '🔥 ACTIVE' : 'Off';
                     this.fireEl.className   = data.fireMode ? 'fire-active' : '';
                 }
+                if (this.recentreBtn) this.recentreBtn.disabled = !data.isPaused;
             }
         });
     </script>
