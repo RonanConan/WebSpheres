@@ -3,6 +3,7 @@ AFRAME.registerComponent('spectator-manager', {
         this.connections = [];
         this.lastSendTime = 0;
         this.recentrePending = false;
+        this.baseRefSpace = null;
         this.vec = new THREE.Vector3();
         this.pos = new THREE.Vector3();
         this.quat = new THREE.Quaternion();
@@ -82,32 +83,30 @@ AFRAME.registerComponent('spectator-manager', {
     doRecentre: function () {
         const renderer = this.el.sceneEl.renderer;
         const frame = this.el.sceneEl.frame;
-        if (!frame || !renderer?.xr) return;
+        if (!frame || !renderer?.xr || !this.baseRefSpace) return;
 
-        const refSpace = renderer.xr.getReferenceSpace();
-        if (!refSpace) return;
-
-        const pose = frame.getViewerPose(refSpace);
+        const pose = frame.getViewerPose(this.baseRefSpace);
         if (!pose) return;
 
         const q = pose.transform.orientation;
         const headQuat = new THREE.Quaternion(q.x, q.y, q.z, q.w);
         const euler = new THREE.Euler().setFromQuaternion(headQuat, 'YXZ');
         const yawQuat = new THREE.Quaternion().setFromEuler(new THREE.Euler(0, euler.y, 0));
-        const inverseYaw = yawQuat.clone().invert();
 
         const p = pose.transform.position;
-        const pos = new THREE.Vector3(p.x, 0, p.z).applyQuaternion(inverseYaw);
-
         const offsetTransform = new XRRigidTransform(
-            { x: pos.x, y: 0, z: pos.z, w: 1 },
+            { x: p.x, y: 0, z: p.z, w: 1 },
             { x: yawQuat.x, y: yawQuat.y, z: yawQuat.z, w: yawQuat.w }
         );
 
-        renderer.xr.setReferenceSpace(refSpace.getOffsetReferenceSpace(offsetTransform));
+        renderer.xr.setReferenceSpace(this.baseRefSpace.getOffsetReferenceSpace(offsetTransform));
     },
 
     tick: function (time) {
+        if (!this.baseRefSpace) {
+            const refSpace = this.el.sceneEl.renderer?.xr?.getReferenceSpace();
+            if (refSpace) this.baseRefSpace = refSpace;
+        }
         if (this.recentrePending) {
             this.recentrePending = false;
             this.doRecentre();
