@@ -8,11 +8,22 @@
     <script>
         AFRAME.registerComponent('observer-receiver', {
             init: function () {
+                this.HOST_ID = 'webspheres-host';
+                this.RETRY_DELAY = 3000;
+                this.DATA_TIMEOUT = 5000;
+                this.CONNECT_TIMEOUT = 10000;
+                this.PING_INTERVAL = 2000;
+                this.RECENTRE_TIMEOUT = 3000;
+
                 this.currentMode = 'pov';
                 this.cameraEl = null;
                 this.cameraPresets = null;
+                this.peer = null;
                 this.conn = null;
-                this.reconnectTimer = null;
+                this.retryTimer = null;
+                this.lastData = 0;
+                this.attemptStarted = 0;
+                this.recentreRequestedAt = 0;
                 this.lastActiveSphere = -2;
                 this.lastRadius = -1;
                 this.lastHeight = -1;
@@ -46,6 +57,14 @@
                         }
                     };
                     this.setupPeer();
+                    this.watchdogInterval = setInterval(() => this.watchdog(), 1000);
+                    this.pingInterval = setInterval(() => this.sendPing(), this.PING_INTERVAL);
+                    document.addEventListener('visibilitychange', () => {
+                        if (!document.hidden && !this.isLive()) this.retryNow();
+                    });
+                    window.addEventListener('online', () => {
+                        if (!this.isLive()) this.retryNow();
+                    });
                 });
             },
 
@@ -96,51 +115,198 @@
                 this.el.appendChild(this.homeBoxEl);
             },
 
+            isLive: function () {
+                return !!(this.conn && this.conn.open && Date.now() - this.lastData < this.DATA_TIMEOUT);
+            },
+
             setupPeer: function () {
-                this.peer = new Peer({ debug: 0 });
-                this.peer.on('open', () => this.tryConnect());
-                this.peer.on('error', (err) => {
-                    if (err.type === 'peer-unavailable') {
+                this.closeConn();
+                const oldPeer = this.peer;
+                this.peer = null;
+                if (oldPeer && !oldPeer.destroyed) {
+                    try { oldPeer.destroy(); } catch (e) {}
+                }
+
+                if (typeof Peer === 'undefined') {
+                    this.setStatus('PeerJS failed to load — check internet, then reload', '#ff4444');
+                    return;
+                }
+
+                let peer;
+                try {
+                    peer = new Peer({ debug: 0 });
+                } catch (e) {
+                    this.setStatus('Could not start connection — retrying...', '#ffaa00');
+                    this.scheduleRetry();
+                    return;
+                }
+                this.peer = peer;
+                this.attemptStarted = Date.now();
+
+                peer.on('open', () => {
+                    if (this.peer === peer) this.tryConnect();
+                });
+                peer.on('error', (err) => {
+                    if (this.peer !== peer || this.isLive()) return;
+                    if (err?.type === 'peer-unavailable') {
                         this.setStatus('VR not found — retrying...', '#ffaa00');
-                        this.scheduleReconnect();
                     } else {
-                        this.setStatus('Error: ' + err.type, '#ff4444');
+                        this.setStatus('Network issue (' + (err?.type || 'unknown') + ') — retrying...', '#ffaa00');
                     }
+                    this.scheduleRetry();
+                });
+                peer.on('disconnected', () => {
+                    if (this.peer === peer && !this.isLive()) this.scheduleRetry();
+                });
+                peer.on('close', () => {
+                    if (this.peer === peer) this.scheduleRetry();
                 });
             },
 
             tryConnect: function () {
-                const conn = this.peer.connect('webspheres-host');
+                this.closeConn();
+                const peer = this.peer;
+                if (!peer || peer.destroyed || peer.disconnected || !peer.open) {
+                    this.setupPeer();
+                    return;
+                }
+
+                const conn = peer.connect(this.HOST_ID);
+                if (!conn) {
+                    this.scheduleRetry();
+                    return;
+                }
                 this.conn = conn;
+                this.attemptStarted = Date.now();
 
                 conn.on('open', () => {
+                    if (this.conn !== conn) return;
+                    this.lastData = Date.now();
                     this.setStatus('● Connected', '#00ff44');
+                    this.updateRecentreButton();
                 });
                 conn.on('data', (rawData) => {
-                    try { this.handleData(JSON.parse(rawData)); } catch (e) {}
+                    if (this.conn !== conn) return;
+                    this.lastData = Date.now();
+                    let data;
+                    try { data = JSON.parse(rawData); } catch (e) { return; }
+                    try { this.handleData(data); } catch (e) {}
                 });
                 conn.on('close', () => {
                     if (this.conn !== conn) return;
                     this.conn = null;
                     this.setStatus('Disconnected — reconnecting...', '#ffaa00');
-                    this.scheduleReconnect();
+                    this.updateRecentreButton();
+                    this.scheduleRetry();
                 });
                 conn.on('error', () => {
                     if (this.conn !== conn) return;
                     this.conn = null;
-                    this.scheduleReconnect();
+                    this.setStatus('Connection error — reconnecting...', '#ffaa00');
+                    this.updateRecentreButton();
+                    this.scheduleRetry();
                 });
             },
 
-            scheduleReconnect: function () {
-                if (this.reconnectTimer) return;
-                this.reconnectTimer = setTimeout(() => {
-                    this.reconnectTimer = null;
+            closeConn: function () {
+                const conn = this.conn;
+                this.conn = null;
+                if (conn) {
+                    try { conn.close(); } catch (e) {}
+                }
+            },
+
+            scheduleRetry: function () {
+                if (this.retryTimer) return;
+                this.retryTimer = setTimeout(() => {
+                    this.retryTimer = null;
+                    this.retry();
+                }, this.RETRY_DELAY);
+            },
+
+            retryNow: function () {
+                if (this.retryTimer) {
+                    clearTimeout(this.retryTimer);
+                    this.retryTimer = null;
+                }
+                this.retry();
+            },
+
+            retry: function () {
+                if (this.isLive()) return;
+                const peer = this.peer;
+                if (peer && peer.open && !peer.disconnected && !peer.destroyed) {
                     this.tryConnect();
-                }, 3000);
+                } else {
+                    this.setupPeer();
+                }
+            },
+
+            watchdog: function () {
+                const now = Date.now();
+                if (this.conn && this.conn.open) {
+                    if (now - this.lastData > this.DATA_TIMEOUT) {
+                        this.setStatus('No data from VR — reconnecting...', '#ffaa00');
+                        this.retryNow();
+                    }
+                } else if (!this.retryTimer && now - this.attemptStarted > this.CONNECT_TIMEOUT) {
+                    this.setStatus('Connection timed out — retrying...', '#ffaa00');
+                    this.retryNow();
+                }
+
+                if (this.recentreRequestedAt && now - this.recentreRequestedAt > this.RECENTRE_TIMEOUT) {
+                    this.recentreRequestedAt = 0;
+                    this.setRecentreNote('✗ No response from headset', '#ff4444');
+                }
+
+                this.updateRecentreButton();
+            },
+
+            sendPing: function () {
+                if (this.conn && this.conn.open) {
+                    try { this.conn.send(JSON.stringify({ type: 'ping' })); } catch (e) {}
+                }
+            },
+
+            sendToHost: function (obj) {
+                if (!this.conn || !this.conn.open) return false;
+                try {
+                    this.conn.send(JSON.stringify(obj));
+                    return true;
+                } catch (e) {
+                    return false;
+                }
+            },
+
+            requestRecentre: function () {
+                if (!this.isLive() || !this.sendToHost({ code: 'KeyR' })) {
+                    this.setRecentreNote('✗ Not connected', '#ff4444');
+                    return;
+                }
+                this.recentreRequestedAt = Date.now();
+                this.setRecentreNote('Recentring...', '#ffaa00');
+            },
+
+            handleRecentreAck: function (data) {
+                this.recentreRequestedAt = 0;
+                if (data.ok) {
+                    this.setRecentreNote('✓ Recentred ' + new Date().toLocaleTimeString(), '#00ff44');
+                } else {
+                    this.setRecentreNote('✗ Recentre failed: ' + (data.reason || 'unknown'), '#ff4444');
+                }
             },
 
             handleData: function (data) {
+                if (!data) return;
+                if (data.type === 'recentre') {
+                    this.handleRecentreAck(data);
+                    return;
+                }
+
+                if (this.statusEl && this.statusEl.textContent !== '● Connected') {
+                    this.setStatus('● Connected', '#00ff44');
+                }
+
                 if (data.radius !== undefined && (
                     data.activeSphere !== this.lastActiveSphere ||
                     data.radius !== this.lastRadius ||
@@ -210,9 +376,11 @@
 
             setupKeyboard: function () {
                 document.addEventListener('keydown', (e) => {
-                    if (this.conn && this.conn.open) {
-                        this.conn.send(JSON.stringify({ code: e.code }));
+                    if (e.code === 'KeyR') {
+                        this.requestRecentre();
+                        return;
                     }
+                    this.sendToHost({ code: e.code });
                 });
             },
 
@@ -245,6 +413,7 @@
                     }
                     #ws-recentre:hover:not(:disabled) { background: #2a1a00; }
                     #ws-recentre:disabled { border-color: #333; color: #444; background: #111; cursor: not-allowed; }
+                    #ws-recentre-note { margin-top: 4px; font-size: 11px; min-height: 14px; }
                     #ws-hint {
                         margin-top: 8px; font-size: 10px; color: #555;
                         border-top: 1px solid #1a1a1a; padding-top: 6px;
@@ -273,7 +442,8 @@
                         <div class="ws-cam-btn" data-mode="topdown">Top-Down</div>
                         <div class="ws-cam-btn" data-mode="side">Side</div>
                     </div>
-                    <button id="ws-recentre">⊕ Recentre View</button>
+                    <button id="ws-recentre" tabindex="-1" disabled>⊕ Recentre View</button>
+                    <div id="ws-recentre-note"></div>
                     <div id="ws-hint">
                         <div id="ws-hint-title">Keys → VR headset</div>
                         <div id="ws-keys">
@@ -289,6 +459,7 @@
                             <span class="ws-k">F</span><span class="ws-d">F-Mode</span>
                             <span class="ws-k">B</span><span class="ws-d">Block mode</span>
                             <span class="ws-k">Z</span><span class="ws-d">Skip target</span>
+                            <span class="ws-k">R</span><span class="ws-d">Recentre view</span>
                         </div>
                     </div>
                 `;
@@ -304,15 +475,29 @@
                 this.condEl   = document.getElementById('ws-cond');
                 this.domEl    = document.getElementById('ws-dom');
                 this.fireEl   = document.getElementById('ws-fire');
+                this.recentreNoteEl = document.getElementById('ws-recentre-note');
 
                 this.recentreBtn = document.getElementById('ws-recentre');
+                this.recentreBtn.addEventListener('mousedown', (e) => e.preventDefault());
                 this.recentreBtn.addEventListener('click', () => {
-                    if (this.conn && this.conn.open) {
-                        this.conn.send(JSON.stringify({ code: 'KeyR' }));
-                    }
+                    this.recentreBtn.blur();
+                    this.requestRecentre();
                 });
 
                 this.switchMode('pov');
+            },
+
+            updateRecentreButton: function () {
+                if (!this.recentreBtn) return;
+                const disabled = !this.isLive();
+                if (this.recentreBtn.disabled !== disabled) this.recentreBtn.disabled = disabled;
+            },
+
+            setRecentreNote: function (msg, color) {
+                if (this.recentreNoteEl) {
+                    this.recentreNoteEl.textContent = msg;
+                    this.recentreNoteEl.style.color = color || '#fff';
+                }
             },
 
             setStatus: function (msg, color) {
@@ -331,7 +516,7 @@
                     this.fireEl.textContent = data.fireMode ? '🔥 ACTIVE' : 'Off';
                     this.fireEl.className   = data.fireMode ? 'fire-active' : '';
                 }
-                if (this.recentreBtn) this.recentreBtn.disabled = !data.isPaused;
+                this.updateRecentreButton();
             }
         });
     </script>

@@ -32,7 +32,10 @@ AFRAME.registerComponent("hand-tracking-extras", {
         }
       }
 
-      if (!handInputSource) return;
+      if (!handInputSource) {
+        if (this.HandData) this.HandData.invalidate();
+        return;
+      }
 
       if (!this.HandData) {
         this.createHandData();
@@ -110,6 +113,10 @@ AFRAME.registerComponent("hand-tracking-extras", {
       };
 
       this.getValidity = () => validPoses;
+
+      this.invalidate = () => {
+        validPoses = false;
+      };
     };
 
     this.HandData = new HandData();

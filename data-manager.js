@@ -7,6 +7,7 @@ AFRAME.registerComponent('data-manager', {
         this.currentMovementTime = 0;
         this.totalTrials = 352;
         this.sessionStartTime = 0;
+        this.recentreCount = 0;
         this.setupManualExport();
     },
     
@@ -57,6 +58,10 @@ AFRAME.registerComponent('data-manager', {
         this.sessionStartTime = startTime || Date.now();
     },
     
+    logRecentre: function() {
+        if (this.sessionStartTime > 0) this.recentreCount++;
+    },
+    
     startDecisionTimer: function() {
         this.sphereAppearTime = Date.now();
         this.currentDecisionTime = 0;
@@ -84,7 +89,8 @@ AFRAME.registerComponent('data-manager', {
             points: points,
             hitType: hitType,
             decisionTime: decisionTime,
-            totalMovementTime: this.currentMovementTime
+            totalMovementTime: this.currentMovementTime,
+            recentreCount: this.recentreCount
         });
         
         console.log(`Trial ${this.trialNumber}: Target ${targetPosition + 1}, Hand ${handUsed}, Points ${points}, Type ${hitType}, Decision Time ${decisionTime}ms`);
@@ -110,10 +116,10 @@ AFRAME.registerComponent('data-manager', {
         }
         
         // Generate CSV content
-        let csvContent = 'Trial,Timestamp,Target,Hand,Points,HitType,DecisionTime,TotalMovementTime\n';
+        let csvContent = 'Trial,Timestamp,Target,Hand,Points,HitType,DecisionTime,TotalMovementTime,RecentreCount\n';
         
         this.trialData.forEach(trial => {
-            csvContent += `${trial.trial},${trial.timestamp},${trial.target},${trial.hand},${trial.points},${trial.hitType},${trial.decisionTime},${trial.totalMovementTime}\n`;
+            csvContent += `${trial.trial},${trial.timestamp},${trial.target},${trial.hand},${trial.points},${trial.hitType},${trial.decisionTime},${trial.totalMovementTime},${trial.recentreCount}\n`;
         });
         
         // Create and download CSV file
@@ -146,5 +152,6 @@ AFRAME.registerComponent('data-manager', {
     resetSession: function() {
         this.trialData = [];
         this.trialNumber = 0;
+        this.recentreCount = 0;
     }
 });
